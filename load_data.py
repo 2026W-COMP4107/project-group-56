@@ -6,6 +6,7 @@ Example script showing how to load Valorant match data and query it.
 
 from data_loader import (
     load_from_json_file,
+    prompt_for_file_selection,
     load_kills,
     load_kills_for_players,
     load_kill_locations,
@@ -16,7 +17,13 @@ from data_loader import (
 if __name__ == "__main__":
     # Load from your JSON file
     print("\n=== Loading from JSON file ===")
-    load_from_json_file("valorant_json.txt")
+    ### Uncomment one of the following options:
+    
+    ### Option 1: Load from a specific file path (original method)
+    # load_from_json_file("valorant_json.txt")
+    
+    ### Option 2: Prompt user to select a file from the json folder
+    prompt_for_file_selection("json")
     
     # Load and display all kill events
     print("\n=== Loading all kill events ===")

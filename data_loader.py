@@ -56,106 +56,6 @@ for table in tables:
 conn.commit()
 conn.close()
 
-### samples database 
-# ── Database bootstrap ────────────────────────────────────────────────────────
-
-# def create_sample_database(db_path: str = DB_PATH, n_matches: int = 200) -> None: 
-#     """
-#     Creates a SQLite database with three tables:
-#         matches  - one row per match
-#         rounds   - one row per round per match (up to 25 rounds)
-#         kills    - individual kill events with timestamps
-
-#     All data is randomly generated to simulate realistic Valorant statistics.
-#     """
-#     conn = sqlite3.connect(db_path)
-#     cur  = conn.cursor()
-
-#     # ── Schema ────────────────────────────────────────────────────────────────
-#     cur.executescript("""
-#         CREATE TABLE IF NOT EXISTS matches (
-#             match_id   TEXT PRIMARY KEY,
-#             map        TEXT,
-#             date       TEXT
-#         );
-
-#         CREATE TABLE IF NOT EXISTS rounds (
-#             round_id   TEXT PRIMARY KEY,
-#             match_id   TEXT,
-#             round_num  INTEGER,
-#             side       TEXT,
-#             winner     TEXT,
-#             FOREIGN KEY (match_id) REFERENCES matches(match_id)
-#         );
-
-#         CREATE TABLE IF NOT EXISTS kills (
-#             kill_id       TEXT PRIMARY KEY,
-#             round_id      TEXT,
-#             match_id      TEXT,
-#             killer        TEXT,
-#             victim        TEXT,
-#             killer_agent  TEXT,
-#             site          TEXT,
-#             timestamp_sec REAL,
-#             is_first_blood INTEGER,
-#             FOREIGN KEY (round_id) REFERENCES rounds(round_id)
-#         );
-#     """)
-
-#     kill_counter = 0
-
-#     for m in range(n_matches):
-#         match_id = f"match_{m:04d}" ### Unique match ID
-#         map_name = random.choice(MAPS) ### Random map from pool
-#         date     = f"2026-{random.randint(1,12):02d}-{random.randint(1,28):02d}" ### Random date in 2026
-
-#         cur.execute("INSERT OR IGNORE INTO matches VALUES (?,?,?)",
-#                     (match_id, map_name, date))
-
-#         n_rounds = random.randint(13, 25)
-
-#         for r in range(n_rounds):
-#             round_id = f"{match_id}_r{r:02d}"
-#             side     = "attack" if r < 12 else "defense"
-#             winner   = random.choice(["team_a", "team_b"])
-
-#             cur.execute("INSERT OR IGNORE INTO rounds VALUES (?,?,?,?,?)",
-#                         (round_id, match_id, r, side, winner))
-
-#             # Simulate 2-8 kill events per round
-#             players_this_round = random.sample(PLAYERS, k=min(10, len(PLAYERS)))
-#             first_blood_set    = False
-#             n_kills            = random.randint(2, 8)
-
-#             for k in range(n_kills):
-#                 killer = random.choice(players_this_round)
-#                 victim = random.choice([p for p in players_this_round if p != killer])
-#                 agent  = random.choice(AGENTS)
-#                 site   = random.choice(SITES)
-
-#                 # Skew timestamp realistically: most action 20-90 s
-#                 ts = max(1.0, np.random.normal(loc=45, scale=25))
-#                 ts = min(ts, 115.0)
-
-#                 is_fb = 0
-#                 if not first_blood_set:
-#                     is_fb = 1
-#                     first_blood_set = True
-
-#                 kill_id = f"kill_{kill_counter:06d}"
-#                 kill_counter += 1
-
-#                 cur.execute(
-#                     "INSERT OR IGNORE INTO kills VALUES (?,?,?,?,?,?,?,?,?)",
-#                     (kill_id, round_id, match_id, killer, victim,
-#                      agent, site, ts, is_fb)
-#                 )
-
-#     conn.commit()
-#     conn.close()
-#     print(f"[data_loader] Sample database created at '{db_path}' "
-#           f"({n_matches} matches).")
-
 
 def load_from_json_file(json_path: str, db_path: str = DB_PATH) -> None:
     """
@@ -185,6 +85,120 @@ def load_from_json_file(json_path: str, db_path: str = DB_PATH) -> None:
     except Exception as e:
         print(f"[data_loader] Error loading JSON file: {e}")
 
+
+### OPTION 1: Load from all TXT files in the json folder (commented out - uncomment to use)
+### def load_from_all_json_files(json_folder: str = "json", db_path: str = DB_PATH) -> None:
+###     """
+###     Loads Valorant match data from all TXT files in the json folder into the SQLite database.
+###     
+###     Parameters
+###     ----------
+###     json_folder : str
+###         Path to the folder containing JSON/TXT files
+###     db_path : str
+###         Path to the SQLite database
+###     """
+###     folder_path = Path(json_folder)
+###     
+###     if not folder_path.exists():
+###         print(f"[data_loader] Error: Folder '{json_folder}' does not exist.")
+###         return
+###     
+###     txt_files = list(folder_path.glob("*.txt"))
+###     
+###     if not txt_files:
+###         print(f"[data_loader] No TXT files found in '{json_folder}'.")
+###         return
+###     
+###     print(f"[data_loader] Found {len(txt_files)} TXT file(s) in '{json_folder}'.")
+###     
+###     for file_path in txt_files:
+###         print(f"[data_loader] Loading file: {file_path.name}")
+###         try:
+###             with open(file_path, 'r') as f:
+###                 data = json.load(f)
+###             
+###             if isinstance(data, dict) and 'data' in data:
+###                 matches = data['data']
+###             elif isinstance(data, list):
+###                 matches = data
+###             else:
+###                 matches = [data]
+###             
+###             _insert_matches_to_db(matches, db_path)
+###             print(f"[data_loader] Successfully loaded data from '{file_path.name}'.")
+###         except Exception as e:
+###             print(f"[data_loader] Error loading file '{file_path.name}': {e}")
+###     
+###     print(f"[data_loader] Completed loading all TXT files from '{json_folder}'.")
+
+
+def prompt_for_file_selection(json_folder: str = "json", db_path: str = DB_PATH) -> None:
+    """
+    Prompts user to select a TXT file from the json folder and loads it into the database.
+    Displays indexed file names for easy selection.
+    
+    Parameters
+    ----------
+    json_folder : str
+        Path to the folder containing JSON/TXT files
+    db_path : str
+        Path to the SQLite database
+    """
+    folder_path = Path(json_folder)
+    
+    if not folder_path.exists():
+        print(f"[data_loader] Error: Folder '{json_folder}' does not exist.")
+        return
+    
+    txt_files = sorted(list(folder_path.glob("*.txt")))
+    
+    if not txt_files:
+        print(f"[data_loader] No TXT files found in '{json_folder}'.")
+        return
+    
+    print(f"\n[data_loader] Available files in '{json_folder}':")
+    print("=" * 60)
+    for idx, file_path in enumerate(txt_files, 1):
+        print(f"  [{idx}] {file_path.name}")
+    print("=" * 60)
+    
+    while True:
+        try:
+            selection = input("[data_loader] Enter the file number to load (or 'q' to quit): ").strip()
+            
+            if selection.lower() == 'q':
+                print("[data_loader] Cancelled.")
+                return
+            
+            file_idx = int(selection) - 1
+            
+            if file_idx < 0 or file_idx >= len(txt_files):
+                print(f"[data_loader] Invalid selection. Please enter a number between 1 and {len(txt_files)}.")
+                continue
+            
+            selected_file = txt_files[file_idx]
+            
+            print(f"[data_loader] Loading file: {selected_file.name}")
+            try:
+                with open(selected_file, 'r') as f:
+                    data = json.load(f)
+                
+                if isinstance(data, dict) and 'data' in data:
+                    matches = data['data']
+                elif isinstance(data, list):
+                    matches = data
+                else:
+                    matches = [data]
+                
+                _insert_matches_to_db(matches, db_path)
+                print(f"[data_loader] Successfully loaded data from '{selected_file.name}'.")
+            except Exception as e:
+                print(f"[data_loader] Error loading file '{selected_file.name}': {e}")
+            
+            break
+        except ValueError:
+            print("[data_loader] Invalid input. Please enter a valid number or 'q' to quit.")
 
 
 ###
@@ -450,12 +464,13 @@ def _insert_matches_to_db(matches_data, db_path: str = DB_PATH) -> None:
                 location = player_loc.get('location', {})
                 loc_x = location.get('x')
                 loc_y = location.get('y')
+                view_radians = player_loc.get('view_radians')
                 
                 location_id = f"loc_{kill_counter:06d}_{idx:02d}"
                 cur.execute(
                     "INSERT OR IGNORE INTO player_locations VALUES (?,?,?,?,?,?,?,?,?,?,?,?)",
                     (location_id, kill_id, match_id, round_id, round_num, timestamp_ms, 
-                     player_puuid, player_name, player_team, loc_x, loc_y, None)  # view_radians = None for now
+                     player_puuid, player_name, player_team, loc_x, loc_y, view_radians)
                 )
             
             kill_counter += 1
