@@ -69,7 +69,7 @@ def load_from_json_file(json_path: str, db_path: str = DB_PATH) -> None:
         Path to the SQLite database
     """
     try:
-        with open(json_path, 'r') as f:
+        with open(json_path, 'r', encoding='utf-8') as f:
             data = json.load(f)
         
         # Extract the matches array from the JSON
@@ -115,7 +115,7 @@ def load_from_json_file(json_path: str, db_path: str = DB_PATH) -> None:
 ###     for file_path in txt_files:
 ###         print(f"[data_loader] Loading file: {file_path.name}")
 ###         try:
-###             with open(file_path, 'r') as f:
+###             with open(file_path, 'r', encoding='utf-8') as f:
 ###                 data = json.load(f)
 ###             
 ###             if isinstance(data, dict) and 'data' in data:
@@ -181,7 +181,7 @@ def prompt_for_file_selection(json_folder: str = "json", db_path: str = DB_PATH)
             
             print(f"[data_loader] Loading file: {selected_file.name}")
             try:
-                with open(selected_file, 'r') as f:
+                with open(selected_file, 'r', encoding='utf-8') as f:
                     data = json.load(f)
                 
                 if isinstance(data, dict) and 'data' in data:
