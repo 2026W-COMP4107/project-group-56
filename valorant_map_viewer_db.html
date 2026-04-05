@@ -1,0 +1,739 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Valorant Map Viewer</title>
+<style>
+*{box-sizing:border-box;margin:0;padding:0}
+body{font-family:system-ui,sans-serif;background:#0f172a;color:#e2e8f0;height:100vh;display:flex;flex-direction:column;overflow:hidden}
+.toolbar{display:flex;align-items:center;gap:8px;padding:8px 12px;background:#1e293b;border-bottom:1px solid #334155;flex-wrap:wrap;flex-shrink:0}
+select,button{height:30px;padding:0 10px;border:1px solid #334155;border-radius:6px;background:#0f172a;color:#e2e8f0;font-size:12px;cursor:pointer}
+button:hover{background:#1e293b}
+button.active{background:#3b82f6;border-color:#3b82f6;color:#fff;font-weight:500}
+.lbl{font-size:11px;color:#94a3b8;white-space:nowrap}
+.main{display:flex;flex:1;overflow:hidden}
+#canvas-wrap{flex:1;position:relative;overflow:hidden;background:#1a1a2e}
+canvas{position:absolute;top:0;left:0}
+#img-canvas{image-rendering:pixelated}
+#player-canvas{cursor:crosshair}
+#zone-canvas{pointer-events:none}
+#zone-canvas.drawing{pointer-events:all;cursor:crosshair}
+.sidebar{width:230px;background:#1e293b;border-left:1px solid #334155;overflow-y:auto;padding:10px;display:flex;flex-direction:column;gap:8px;flex-shrink:0}
+.card{background:#0f172a;border:1px solid #334155;border-radius:8px;padding:10px;font-size:12px}
+.card h3{font-size:10px;font-weight:600;color:#64748b;margin-bottom:8px;text-transform:uppercase;letter-spacing:.8px}
+.kill-item{padding:5px 4px;border-bottom:1px solid #1e293b;cursor:pointer;color:#94a3b8;font-size:11px;border-radius:4px}
+.kill-item:hover{background:#1e293b;color:#e2e8f0}
+.kill-item.sel{background:#1d3a5f;color:#60a5fa;font-weight:500}
+.kill-item:last-child{border-bottom:none}
+.zone-item{display:flex;align-items:center;gap:6px;padding:3px 0}
+.zone-badge{width:10px;height:10px;border-radius:2px;flex-shrink:0}
+.zone-name{flex:1;font-size:11px;color:#e2e8f0}
+.zone-del{cursor:pointer;color:#475569;font-size:16px;line-height:1;padding:0 2px}
+.zone-del:hover{color:#ef4444}
+.legend-row{display:flex;align-items:center;gap:6px;margin-bottom:5px;font-size:11px;color:#94a3b8}
+.dot{width:10px;height:10px;border-radius:50%;flex-shrink:0}
+.tip{position:fixed;background:#1e293b;border:1px solid #475569;border-radius:6px;padding:6px 10px;font-size:11px;pointer-events:none;display:none;z-index:999;max-width:180px;color:#e2e8f0;line-height:1.5}
+.sep{color:#475569;font-size:10px}
+.img-status{position:absolute;top:8px;left:8px;background:rgba(0,0,0,.6);padding:4px 8px;border-radius:4px;font-size:10px;color:#f59e0b;pointer-events:none;z-index:10}
+input[type=range]{accent-color:#3b82f6;width:70px}
+</style>
+</head>
+<body>
+
+<div class="toolbar">
+  <span class="lbl">Map</span>
+  <select id="mapSel"></select>
+  <span class="lbl">Round</span>
+  <select id="roundSel"></select>
+  <span class="lbl">Kill</span>
+  <select id="killSel"></select>
+  <div style="width:1px;height:20px;background:#334155;margin:0 4px"></div>
+  <button id="btnView" class="active">View</button>
+  <button id="btnZone">Draw zones</button>
+  <button id="btnHeat">Heatmap</button>
+  <div style="width:1px;height:20px;background:#334155;margin:0 4px"></div>
+  <span class="lbl">Map opacity</span>
+  <input type="range" id="mapOpacity" min="0" max="100" value="80" step="1">
+  <span id="opacityVal" style="font-size:11px;color:#94a3b8;min-width:28px">80%</span>
+  <div style="flex:1"></div>
+  <button id="exportZones">Export zones JSON ↓</button>
+</div>
+
+<div class="main">
+  <div id="canvas-wrap">
+    <div class="img-status" id="imgStatus" style="display:none">No map image — place Haven.png / Bind.png etc. in map_images/</div>
+    <canvas id="img-canvas"></canvas>
+    <canvas id="player-canvas"></canvas>
+    <canvas id="zone-canvas"></canvas>
+  </div>
+  <div class="sidebar">
+    <div class="card">
+      <h3>Legend</h3>
+      <div class="legend-row"><div class="dot" style="background:#3b82f6"></div>Blue team</div>
+      <div class="legend-row"><div class="dot" style="background:#ef4444"></div>Red team</div>
+      <div class="legend-row"><div class="dot" style="background:#facc15;border:1px solid #555"></div>Killer (★ badge)</div>
+      <div class="legend-row"><div class="dot" style="background:#1e293b;border:2px solid #ef4444"></div>Victim (× overlay)</div>
+      <div class="legend-row" style="font-size:10px;color:#64748b;margin-top:4px">Agent icons load from<br><code style="color:#94a3b8">agent_icons/</code> folder</div>
+    </div>
+    <div class="card">
+      <h3>Kill info</h3>
+      <div id="kill-detail" style="color:#475569;font-size:11px;line-height:1.6">Select a kill above</div>
+    </div>
+    <div class="card">
+      <h3>Kills this round</h3>
+      <div id="kill-list"></div>
+    </div>
+    <div class="card">
+      <h3>Zones <span class="sep">— draw mode to add</span></h3>
+      <div id="zone-list"><div style="font-size:11px;color:#475569">No zones. Switch to "Draw zones" then drag on the map.</div></div>
+      <button id="exportZonesPanel" style="width:100%;margin-top:8px;height:26px;font-size:11px">Export zones JSON ↓</button>
+    </div>
+  </div>
+</div>
+<div class="tip" id="tip"></div>
+
+<script>
+let RAW = {};
+let MAPS = [];
+
+async function loadRawFromDatabase() {
+  const res = await fetch('/api/raw');
+  if (!res.ok) throw new Error(`Failed to load match data: ${res.status}`);
+  RAW = await res.json();
+  MAPS = Object.keys(RAW);
+  if (!MAPS.length) throw new Error('Database returned no supported map data.');
+  if (!RAW[currentMap]) currentMap = MAPS[0];
+}
+
+const ZONE_COLORS = ['#6366f1','#10b981','#f59e0b','#ec4899','#8b5cf6','#14b8a6','#f97316','#06b6d4','#84cc16','#e11d48'];
+const AGENT_ABBR = {
+  'Astra':'AS','Breach':'BR','Brimstone':'BI','Chamber':'CH','Clove':'CL',
+  'Cypher':'CY','Deadlock':'DL','Fade':'FA','Gekko':'GK','Harbor':'HB',
+  'Iso':'IS','Jett':'JE','KAY/O':'KO','KAYO':'KO','Killjoy':'KJ','Neon':'NE','Omen':'OM',
+  'Phoenix':'PH','Raze':'RZ','Reyna':'RE','Sage':'SG','Skye':'SK',
+  'Sova':'SO','Tejo':'TJ','Viper':'VI','Vyse':'VY','Waylay':'WL','Yoru':'YO',
+  'Veto':'VT','Miks':'MI'
+};
+
+const MAP_CALIBRATION = {
+  Bind:     { rotation: 90, offsetX: 0.14,   offsetY: 0.07,   scaleX: 0.7, scaleY: 0.7 },
+  Split:    { rotation: 0, offsetX: 0,   offsetY: 0,   scaleX: 1, scaleY: 1 },
+  Breeze:   { rotation: 0, offsetX: 0,   offsetY: 0,   scaleX: 1, scaleY: 1 },
+  Fracture: { rotation: 0, offsetX: 0,   offsetY: 0,   scaleX: 1, scaleY: 1 },
+  Pearl:    { rotation: 0, offsetX: 0,   offsetY: 0,   scaleX: 1, scaleY: 1 },
+  Corrode:    { rotation: 0, offsetX: 0.045,   offsetY: 0.1,   scaleX: 0.9, scaleY: 0.75 },
+  Haven:    { rotation: 0, offsetX: 0,   offsetY: 0,   scaleX: 1, scaleY: 1 },
+};
+
+let currentMap = MAPS[0];
+let currentRound = null;
+let currentKillIdx = null;
+let mode = 'view';
+let zones = {};
+let drawing = false;
+let drawStart = null;
+let drawCurrent = null;
+let mapImage = null;
+let mapOpacity = 0.8;
+let imageCache = {};
+
+// Agent icon support
+const AGENT_ICONS_FOLDER = 'agent_icons';
+const agentIconCache = {}; // agentName -> HTMLImageElement | null
+
+function loadAgentIcon(agentName) {
+  if (agentName in agentIconCache) return;
+
+  agentIconCache[agentName] = null;
+
+  const img = new Image();
+
+  const safe = agentName
+    .trim()
+    .replace(/\//g, '')      // KAY/O -> KAYO
+    .replace(/[^a-zA-Z0-9_-]/g, '');
+
+  const safeLower = safe.toLowerCase();
+
+  const paths = [
+    `${AGENT_ICONS_FOLDER}/${safe}.png`,
+    `${AGENT_ICONS_FOLDER}/${safe}.jpg`,
+    `${AGENT_ICONS_FOLDER}/${safeLower}.png`,
+    `${AGENT_ICONS_FOLDER}/${safeLower}.jpg`,
+  ];
+
+  let tried = 0;
+
+  function tryNext() {
+    if (tried >= paths.length) return;
+    img.src = paths[tried++];
+  }
+
+  img.onload = () => {
+    agentIconCache[agentName] = img;
+    drawPlayers();
+  };
+
+  img.onerror = tryNext;
+  tryNext();
+}
+
+function preloadAgentIcons() {
+  const kills = getKills();
+  kills.forEach(k => k.p.forEach(p => loadAgentIcon(p.a)));
+}
+
+const wrap = document.getElementById('canvas-wrap');
+const ic = document.getElementById('img-canvas');
+const pc = document.getElementById('player-canvas');
+const zc = document.getElementById('zone-canvas');
+const ictx = ic.getContext('2d');
+const pctx = pc.getContext('2d');
+const zctx = zc.getContext('2d');
+const tip = document.getElementById('tip');
+const imgStatus = document.getElementById('imgStatus');
+
+function abbr(a) { return AGENT_ABBR[a] || a.slice(0,2).toUpperCase(); }
+function getMapData() { return RAW[currentMap]; }
+function getBounds() { return getMapData().bounds; }
+function getRounds() { return Object.keys(getMapData().rounds).map(Number).sort((a,b)=>a-b); }
+function getKills() {
+  if (currentRound === null) return [];
+  return getMapData().rounds[String(currentRound)] || [];
+}
+
+function getCalibration() {
+  return MAP_CALIBRATION[currentMap] || { offsetX: 0, offsetY: 0, scaleX: 1, scaleY: 1 };
+}
+
+function applyRotation(nx, ny, rotation) {
+  if (rotation === 90)  return [ny, 1 - nx];      // clockwise
+  if (rotation === 180) return [1 - nx, 1 - ny];
+  if (rotation === 270) return [1 - ny, nx];
+  return [nx, ny];
+}
+
+function undoRotation(nx, ny, rotation) {
+  if (rotation === 90)  return [1 - ny, nx];      // inverse of 90°
+  if (rotation === 180) return [1 - nx, 1 - ny];
+  if (rotation === 270) return [ny, 1 - nx];
+  return [nx, ny];
+}
+
+function toCanvas(x, y) {
+  const b = getBounds();
+  const vp = getImageViewport();
+  const cal = getCalibration();
+
+  let nx = (x - b.minX) / (b.maxX - b.minX);
+  let ny = (y - b.minY) / (b.maxY - b.minY);
+
+  // 🔁 Apply rotation (only affects Bind because of config)
+  [nx, ny] = applyRotation(nx, ny, cal.rotation);
+
+  // Apply calibration
+  nx = nx * cal.scaleX + cal.offsetX;
+  ny = ny * cal.scaleY + cal.offsetY;
+
+  return [
+    vp.x + nx * vp.w,
+    vp.y + ny * vp.h
+  ];
+}
+
+function fromCanvas(cx, cy) {
+  const b = getBounds();
+  const vp = getImageViewport();
+  const cal = getCalibration();
+
+  let nx = (cx - vp.x) / vp.w;
+  let ny = (cy - vp.y) / vp.h;
+
+  // Remove calibration first
+  nx = (nx - cal.offsetX) / cal.scaleX;
+  ny = (ny - cal.offsetY) / cal.scaleY;
+
+  // 🔁 Undo rotation (only applies to Bind)
+  [nx, ny] = undoRotation(nx, ny, cal.rotation);
+
+  return [
+    Math.round(b.minX + nx * (b.maxX - b.minX)),
+    Math.round(b.minY + ny * (b.maxY - b.minY))
+  ];
+}
+
+function resize() {
+  const r = wrap.getBoundingClientRect();
+  ic.width = pc.width = zc.width = r.width;
+  ic.height = pc.height = zc.height = r.height;
+  drawMapImage();
+  drawPlayers();
+  drawZones();
+}
+
+function loadMapImage(mapName) {
+  if (imageCache[mapName] !== undefined) {
+    mapImage = imageCache[mapName];
+    drawMapImage();
+    return;
+  }
+  const img = new Image();
+  const paths = [
+    `map_images/${mapName}.png`,
+    `map_images/${mapName}.jpg`,
+    `map_images/${mapName.toLowerCase()}.png`,
+    `map_images/${mapName.toLowerCase()}.jpg`,
+  ];
+  let tried = 0;
+  function tryNext() {
+    if (tried >= paths.length) {
+      imageCache[mapName] = null;
+      mapImage = null;
+      imgStatus.style.display = 'block';
+      drawMapImage();
+      return;
+    }
+    img.src = paths[tried++];
+  }
+  img.onload = () => {
+    imageCache[mapName] = img;
+    mapImage = img;
+    imgStatus.style.display = 'none';
+    drawMapImage();
+    drawPlayers();
+  };
+  img.onerror = tryNext;
+  tryNext();
+}
+
+function getImageViewport() {
+  const pad = 24;
+  const availW = ic.width - pad * 2;
+  const availH = ic.height - pad * 2;
+
+  if (!mapImage) {
+    return { x: pad, y: pad, w: availW, h: availH };
+  }
+
+  const imgAspect = mapImage.width / mapImage.height;
+  const boxAspect = availW / availH;
+
+  let w, h, x, y;
+
+  if (imgAspect > boxAspect) {
+    w = availW;
+    h = w / imgAspect;
+    x = pad;
+    y = pad + (availH - h) / 2;
+  } else {
+    h = availH;
+    w = h * imgAspect;
+    x = pad + (availW - w) / 2;
+    y = pad;
+  }
+
+  return { x, y, w, h };
+}
+
+function drawMapImage() {
+  ictx.clearRect(0, 0, ic.width, ic.height);
+  ictx.fillStyle = '#0d1b2a';
+  ictx.fillRect(0, 0, ic.width, ic.height);
+
+  if (!mapImage) return;
+
+  const vp = getImageViewport();
+
+  ictx.save();
+  ictx.globalAlpha = mapOpacity;
+  ictx.drawImage(mapImage, vp.x, vp.y, vp.w, vp.h);
+  ictx.restore();
+}
+
+function drawPlayers() {
+  pctx.clearRect(0, 0, pc.width, pc.height);
+  const kills = getKills();
+  if (!kills.length) return;
+
+  if (mode === 'heat') { drawHeatmap(kills); return; }
+
+  const sel = currentKillIdx !== null ? kills[currentKillIdx] : null;
+  const players = sel ? sel.p : kills.flatMap(k => k.p);
+  const killerName = sel ? sel.k : null;
+  const victimName = sel ? sel.v : null;
+
+  // Draw kill line first (under icons/dots)
+  if (sel && killerName && victimName) {
+    const kp = sel.p.find(p => p.n === killerName);
+    const vp = sel.p.find(p => p.n === victimName);
+    if (kp && vp) {
+      const [kx, ky] = toCanvas(kp.x, kp.y);
+      const [vx, vy] = toCanvas(vp.x, vp.y);
+      pctx.beginPath();
+      pctx.moveTo(kx, ky);
+      pctx.lineTo(vx, vy);
+      pctx.strokeStyle = 'rgba(250,204,21,0.5)';
+      pctx.lineWidth = 1.5;
+      pctx.setLineDash([5,3]);
+      pctx.stroke();
+      pctx.setLineDash([]);
+    }
+  }
+
+  players.forEach(p => {
+    const [cx, cy] = toCanvas(p.x, p.y);
+    const isKiller = p.n === killerName;
+    const isVictim = p.n === victimName;
+    const R = isKiller || isVictim ? 11 : 9;
+    const teamColor = p.t === 'Blue' ? '#3b82f6' : p.t === 'Red' ? '#ef4444' : '#888';
+    const icon = agentIconCache[p.a]; // HTMLImageElement or null/undefined
+
+    // Shadow ring
+    pctx.beginPath();
+    pctx.arc(cx, cy, R + 2, 0, Math.PI * 2);
+    pctx.fillStyle = 'rgba(0,0,0,0.55)';
+    pctx.fill();
+
+    if (icon) {
+      // --- AGENT ICON MODE ---
+      // Coloured ring: team for normal, gold for killer, red for victim
+      pctx.beginPath();
+      pctx.arc(cx, cy, R + 1.5, 0, Math.PI * 2);
+      pctx.strokeStyle = isKiller ? '#facc15' : isVictim ? '#ef4444' : teamColor;
+      pctx.lineWidth = isKiller || isVictim ? 3 : 2;
+      pctx.stroke();
+
+      // Optional coloured background circle behind icon
+      pctx.beginPath();
+      pctx.arc(cx, cy, R, 0, Math.PI * 2);
+      pctx.fillStyle = isKiller ? 'rgba(250,204,21,0.25)' : isVictim ? 'rgba(239,68,68,0.25)' : 'rgba(15,23,42,0.6)';
+      pctx.fill();
+
+      // Clip to circle and draw icon
+      pctx.save();
+      pctx.beginPath();
+      pctx.arc(cx, cy, R, 0, Math.PI * 2);
+      pctx.clip();
+      // Draw icon centered; icons are typically square portraits
+      const iconSize = R * 2;
+      pctx.drawImage(icon, cx - R, cy - R, iconSize, iconSize);
+      pctx.restore();
+
+      // Dead (victim) X overlay
+      if (isVictim) {
+        pctx.save();
+        pctx.strokeStyle = '#ef4444';
+        pctx.lineWidth = 2.5;
+        pctx.globalAlpha = 0.9;
+        const x0 = cx - R * 0.55, y0 = cy - R * 0.55;
+        const x1 = cx + R * 0.55, y1 = cy + R * 0.55;
+        pctx.beginPath(); pctx.moveTo(x0, y0); pctx.lineTo(x1, y1); pctx.stroke();
+        pctx.beginPath(); pctx.moveTo(x1, y0); pctx.lineTo(x0, y1); pctx.stroke();
+        pctx.restore();
+      }
+
+      // Kill star for killer
+      if (isKiller) {
+        pctx.save();
+        pctx.fillStyle = '#facc15';
+        pctx.font = `bold ${R * 0.9}px system-ui`;
+        pctx.textAlign = 'center';
+        pctx.textBaseline = 'middle';
+        // Small star badge in top-right corner
+        const bx = cx + R * 0.6, by = cy - R * 0.6;
+        pctx.beginPath();
+        pctx.arc(bx, by, R * 0.38, 0, Math.PI * 2);
+        pctx.fillStyle = '#facc15';
+        pctx.fill();
+        pctx.fillStyle = '#1e293b';
+        pctx.font = `bold ${Math.max(7, R * 0.4)}px system-ui`;
+        pctx.fillText('★', bx, by + 1);
+        pctx.restore();
+      }
+
+    } else {
+      // --- FALLBACK: DOT + ABBREVIATION MODE ---
+      pctx.beginPath();
+      pctx.arc(cx, cy, R, 0, Math.PI * 2);
+      pctx.fillStyle = isKiller ? '#facc15' : isVictim ? '#0f172a' : teamColor;
+      pctx.fill();
+
+      pctx.beginPath();
+      pctx.arc(cx, cy, R + 1, 0, Math.PI * 2);
+      pctx.strokeStyle = isVictim ? '#ef4444' : isKiller ? '#facc15' : teamColor;
+      pctx.lineWidth = isKiller || isVictim ? 2 : 1.5;
+      pctx.stroke();
+
+      pctx.fillStyle = isKiller ? '#1e293b' : '#fff';
+      pctx.font = `bold 7px system-ui`;
+      pctx.textAlign = 'center';
+      pctx.textBaseline = 'middle';
+      pctx.fillText(abbr(p.a), cx, cy);
+    }
+
+    // Name tag below icon/dot (same for both modes)
+    const tag = p.n.length > 12 ? p.n.slice(0, 11) + '…' : p.n;
+    pctx.font = '9px system-ui';
+    pctx.textAlign = 'center';
+    pctx.textBaseline = 'top';
+    const tw = pctx.measureText(tag).width;
+    pctx.fillStyle = 'rgba(0,0,0,0.7)';
+    pctx.fillRect(cx - tw / 2 - 2, cy + R + 2, tw + 4, 13);
+    pctx.fillStyle = isKiller ? '#facc15' : isVictim ? '#ef4444' : teamColor;
+    pctx.fillText(tag, cx, cy + R + 3);
+  });
+}
+
+function drawHeatmap(kills) {
+  const W = pc.width, H = pc.height;
+  const imgData = pctx.createImageData(W, H);
+  const density = new Float32Array(W * H);
+  const R = 20;
+  kills.forEach(kill => {
+    kill.p.forEach(p => {
+      const [cx, cy] = toCanvas(p.x, p.y);
+      for (let dy = -R; dy <= R; dy++) {
+        for (let dx = -R; dx <= R; dx++) {
+          const d2 = dx*dx + dy*dy;
+          if (d2 > R*R) continue;
+          const px = Math.floor(cx+dx), py = Math.floor(cy+dy);
+          if (px < 0 || py < 0 || px >= W || py >= H) continue;
+          density[py*W+px] += 1 - Math.sqrt(d2)/R;
+        }
+      }
+    });
+  });
+  let maxD = 0;
+  for (let i = 0; i < density.length; i++) if (density[i] > maxD) maxD = density[i];
+  for (let i = 0; i < density.length; i++) {
+    const v = maxD > 0 ? density[i]/maxD : 0;
+    if (v < 0.02) continue;
+    const idx = i*4;
+    let r,g,b;
+    if (v < 0.25) { r=0; g=Math.round(v*4*255); b=255; }
+    else if (v < 0.5) { r=0; g=255; b=Math.round((1-(v-0.25)*4)*255); }
+    else if (v < 0.75) { r=Math.round((v-0.5)*4*255); g=255; b=0; }
+    else { r=255; g=Math.round((1-(v-0.75)*4)*255); b=0; }
+    imgData.data[idx]=r; imgData.data[idx+1]=g; imgData.data[idx+2]=b; imgData.data[idx+3]=Math.round(v*210);
+  }
+  pctx.putImageData(imgData, 0, 0);
+}
+
+function drawZones() {
+  zctx.clearRect(0, 0, zc.width, zc.height);
+  (zones[currentMap] || []).forEach((z, i) => {
+    const [x1,y1] = toCanvas(z.x1, z.y1);
+    const [x2,y2] = toCanvas(z.x2, z.y2);
+    const col = ZONE_COLORS[i % ZONE_COLORS.length];
+    const rx = Math.min(x1,x2), ry = Math.min(y1,y2);
+    const rw = Math.abs(x2-x1), rh = Math.abs(y2-y1);
+    zctx.fillStyle = col + '2a';
+    zctx.strokeStyle = col;
+    zctx.lineWidth = 2;
+    zctx.fillRect(rx, ry, rw, rh);
+    zctx.strokeRect(rx, ry, rw, rh);
+    // Label background
+    const lw = zctx.measureText(z.name).width + 8;
+    zctx.fillStyle = col + 'cc';
+    zctx.fillRect(rx, ry, lw, 18);
+    zctx.fillStyle = '#fff';
+    zctx.font = 'bold 11px system-ui';
+    zctx.fillText(z.name, rx+4, ry+13);
+  });
+  if (drawing && drawStart && drawCurrent) {
+    const col = ZONE_COLORS[(zones[currentMap]||[]).length % ZONE_COLORS.length];
+    zctx.fillStyle = col + '22';
+    zctx.strokeStyle = col;
+    zctx.lineWidth = 2;
+    zctx.setLineDash([6,3]);
+    const rx = Math.min(drawStart[0], drawCurrent[0]);
+    const ry = Math.min(drawStart[1], drawCurrent[1]);
+    const rw = Math.abs(drawCurrent[0]-drawStart[0]);
+    const rh = Math.abs(drawCurrent[1]-drawStart[1]);
+    zctx.fillRect(rx, ry, rw, rh);
+    zctx.strokeRect(rx, ry, rw, rh);
+    zctx.setLineDash([]);
+  }
+}
+
+function updateKillList() {
+  const kills = getKills();
+  const list = document.getElementById('kill-list');
+  list.innerHTML = '';
+  kills.forEach((k, i) => {
+    const d = document.createElement('div');
+    d.className = 'kill-item' + (i === currentKillIdx ? ' sel' : '');
+    d.textContent = `${(k.ms/1000).toFixed(1)}s  ${k.k} → ${k.v}${k.s?' ['+k.s+']':''}`;
+    d.onclick = () => { currentKillIdx = i; updateKillList(); updateKillDetail(); drawPlayers(); };
+    list.appendChild(d);
+  });
+}
+
+function updateKillDetail() {
+  const kills = getKills();
+  const el = document.getElementById('kill-detail');
+  if (currentKillIdx === null || !kills[currentKillIdx]) {
+    el.innerHTML = '<span style="color:#475569">Select a kill above</span>'; return;
+  }
+  const k = kills[currentKillIdx];
+  el.innerHTML = `<b style="color:#e2e8f0">${k.k}</b> <span style="color:#475569">→</span> <b style="color:#e2e8f0">${k.v}</b><br><span style="color:#64748b">Weapon:</span> ${k.w||'?'}<br><span style="color:#64748b">Site:</span> ${k.s||'?'}<br><span style="color:#64748b">Time:</span> ${(k.ms/1000).toFixed(1)}s<br><span style="color:#64748b">Players on screen:</span> ${k.p.length}`;
+}
+
+function populateRounds() {
+  roundSel.innerHTML = '';
+  getRounds().forEach(r => {
+    const o = document.createElement('option'); o.value = r;
+    o.textContent = `Round ${r}`; roundSel.appendChild(o);
+  });
+  currentRound = getRounds()[0];
+  populateKills();
+}
+
+function populateKills() {
+  killSel.innerHTML = '<option value="">All kills</option>';
+  getKills().forEach((k, i) => {
+    const o = document.createElement('option'); o.value = i;
+    o.textContent = `${(k.ms/1000).toFixed(1)}s: ${k.k}→${k.v}`; killSel.appendChild(o);
+  });
+  currentKillIdx = null;
+  preloadAgentIcons();
+  updateKillList(); updateKillDetail(); drawPlayers(); drawZones();
+}
+
+function updateZonePanel() {
+  const mapZones = zones[currentMap] || [];
+  const list = document.getElementById('zone-list');
+  if (!mapZones.length) {
+    list.innerHTML = '<div style="font-size:11px;color:#475569">No zones. Switch to "Draw zones" then drag on the map.</div>'; return;
+  }
+  list.innerHTML = '';
+  mapZones.forEach((z, i) => {
+    const row = document.createElement('div'); row.className = 'zone-item';
+    const col = ZONE_COLORS[i % ZONE_COLORS.length];
+    row.innerHTML = `<div class="zone-badge" style="background:${col}"></div><div class="zone-name">${z.name}</div><div class="zone-del" data-i="${i}">×</div>`;
+    row.querySelector('.zone-del').onclick = () => { zones[currentMap].splice(i,1); updateZonePanel(); drawZones(); };
+    list.appendChild(row);
+  });
+}
+
+function doExport() {
+  const blob = new Blob([JSON.stringify(zones, null, 2)], {type:'application/json'});
+  const a = document.createElement('a'); a.href = URL.createObjectURL(blob);
+  a.download = 'valorant_zones.json'; a.click();
+}
+
+// Controls
+const mapSel = document.getElementById('mapSel');
+const roundSel = document.getElementById('roundSel');
+const killSel = document.getElementById('killSel');
+
+function populateMapOptions() {
+  mapSel.innerHTML = '';
+  MAPS.forEach(m => {
+    const o = document.createElement('option');
+    o.value = m;
+    o.textContent = m;
+    mapSel.appendChild(o);
+  });
+  mapSel.value = currentMap;
+}
+
+mapSel.onchange = () => {
+  currentMap = mapSel.value; currentRound = null; currentKillIdx = null;
+  imageCache = {};  // allow reload
+  loadMapImage(currentMap);
+  populateRounds(); updateZonePanel();
+};
+roundSel.onchange = () => { currentRound = Number(roundSel.value); currentKillIdx = null; populateKills(); };
+killSel.onchange = () => { currentKillIdx = killSel.value === '' ? null : Number(killSel.value); updateKillList(); updateKillDetail(); drawPlayers(); };
+
+document.getElementById('btnView').onclick = () => { mode='view'; setMode(); };
+document.getElementById('btnZone').onclick = () => { mode='zone'; setMode(); };
+document.getElementById('btnHeat').onclick = () => { mode='heat'; setMode(); };
+
+document.getElementById('mapOpacity').oninput = function() {
+  mapOpacity = this.value / 100;
+  document.getElementById('opacityVal').textContent = this.value + '%';
+  drawMapImage();
+};
+
+document.getElementById('exportZones').onclick = doExport;
+document.getElementById('exportZonesPanel').onclick = doExport;
+
+function setMode() {
+  ['btnView','btnZone','btnHeat'].forEach(id => document.getElementById(id).classList.remove('active'));
+  document.getElementById({view:'btnView',zone:'btnZone',heat:'btnHeat'}[mode]).classList.add('active');
+  zc.classList.toggle('drawing', mode === 'zone');
+  drawPlayers();
+}
+
+// Hover tooltip
+pc.onmousemove = (e) => {
+  if (mode !== 'view') return;
+  const rect = pc.getBoundingClientRect();
+  const mx = e.clientX - rect.left, my = e.clientY - rect.top;
+  const kills = getKills();
+  const players = currentKillIdx !== null ? kills[currentKillIdx]?.p||[] : kills.flatMap(k=>k.p);
+  let found = null, minD = 14;
+  players.forEach(p => {
+    const [cx,cy] = toCanvas(p.x, p.y);
+    const d = Math.hypot(cx-mx, cy-my);
+    if (d < minD) { minD=d; found=p; }
+  });
+  if (found) {
+    tip.style.display='block'; tip.style.left=(e.clientX+14)+'px'; tip.style.top=(e.clientY-10)+'px';
+    tip.innerHTML=`<b>${found.n}</b><br>${found.a} · <span style="color:${found.t==='Blue'?'#60a5fa':'#f87171'}">${found.t}</span><br><span style="color:#64748b">(${found.x}, ${found.y})</span>`;
+  } else { tip.style.display='none'; }
+};
+pc.onmouseleave = () => { tip.style.display='none'; };
+
+// Zone drawing
+zc.onmousedown = (e) => {
+  if (mode!=='zone') return;
+  const rect = zc.getBoundingClientRect();
+  drawStart = [e.clientX-rect.left, e.clientY-rect.top];
+  drawing = true;
+};
+zc.onmousemove = (e) => {
+  if (!drawing) return;
+  const rect = zc.getBoundingClientRect();
+  drawCurrent = [e.clientX-rect.left, e.clientY-rect.top];
+  drawZones();
+};
+zc.onmouseup = (e) => {
+  if (!drawing||!drawStart) return;
+  drawing = false;
+  const rect = zc.getBoundingClientRect();
+  const end = [e.clientX-rect.left, e.clientY-rect.top];
+  if (Math.abs(end[0]-drawStart[0])<10||Math.abs(end[1]-drawStart[1])<10) { drawStart=null; drawCurrent=null; drawZones(); return; }
+  const name = prompt('Zone name (e.g. "A Site", "Mid", "B Site"):');
+  if (!name) { drawStart=null; drawCurrent=null; drawZones(); return; }
+  const [x1,y1] = fromCanvas(drawStart[0], drawStart[1]);
+  const [x2,y2] = fromCanvas(end[0], end[1]);
+  if (!zones[currentMap]) zones[currentMap] = [];
+  zones[currentMap].push({name, x1:Math.min(x1,x2), y1:Math.min(y1,y2), x2:Math.max(x1,x2), y2:Math.max(y1,y2)});
+  drawStart=null; drawCurrent=null;
+  drawZones(); updateZonePanel();
+};
+
+new ResizeObserver(resize).observe(wrap);
+async function initializeApp() {
+  try {
+    await loadRawFromDatabase();
+    populateMapOptions();
+    loadMapImage(currentMap);
+    populateRounds();
+    updateZonePanel();
+    resize();
+  } catch (err) {
+    console.error(err);
+    document.getElementById('kill-detail').innerHTML = `<span style="color:#f87171">${err.message}</span>`;
+    document.getElementById('kill-list').innerHTML = '<div style="font-size:11px;color:#f87171">Could not load data from valorant.db</div>';
+  }
+}
+
+window.addEventListener('load', initializeApp);
+</script>
+</body>
+</html>
