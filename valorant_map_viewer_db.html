@@ -288,11 +288,9 @@ function fromCanvas(cx, cy) {
   nx = (nx - cal.offsetX) / cal.scaleX;
   ny = (ny - cal.offsetY) / cal.scaleY;
 
-  // 🔁 Undo rotation (only applies to maps configured with rotation)
+  // Undo rotation (only applies to maps configured with rotation)
   [nx, ny] = undoRotation(nx, ny, cal.rotation);
-
-  // 🪞 Undo x-axis flip
-  nx = 1 - nx;
+  ny = 1 - ny;
 
   // Return normalized coords (in-game coords not recoverable here without scalars)
   return [
