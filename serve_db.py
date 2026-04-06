@@ -27,6 +27,16 @@ DB_PATH = ROOT / "valorant.db"
 VIEWER_FILE = ROOT / "valorant_map_viewer_db.html"
 SUPPORTED_MAPS = ["Bind", "Split", "Breeze", "Fracture", "Pearl"]
 
+# Conversion factors from the Valorant API (dash.valorant-api.com/endpoints/maps).
+# Formula: normalized = multiplier * ingame_coord + scalarToAdd  →  result in [0, 1]
+MAP_SCALARS: dict[str, dict[str, float]] = {
+    "Bind":     {"xMultiplier": 5.9e-05,  "xScalarToAdd": 0.576941, "yMultiplier": -5.9e-05,  "yScalarToAdd": 0.967566},
+    "Split":    {"xMultiplier": 7.8e-05,  "xScalarToAdd": 0.842188, "yMultiplier": -7.8e-05,  "yScalarToAdd": 0.697578},
+    "Breeze":   {"xMultiplier": 7.0e-05,  "xScalarToAdd": 0.465123, "yMultiplier": -7.0e-05,  "yScalarToAdd": 0.833078},
+    "Fracture": {"xMultiplier": 7.8e-05,  "xScalarToAdd": 0.556952, "yMultiplier": -7.8e-05,  "yScalarToAdd": 1.155886},
+    "Pearl":    {"xMultiplier": 7.8e-05,  "xScalarToAdd": 0.480469, "yMultiplier": -7.8e-05,  "yScalarToAdd": 0.916016},
+}
+
 os.chdir(ROOT)
 
 
@@ -41,6 +51,20 @@ def pick_player_location_join(pl_cols: set[str]) -> tuple[str, str] | None:
     if "kill_id" in pl_cols:
         return "pl.kill_id = k.kill_id", "pl.kill_id"
     return None
+
+
+def normalize_coord(x: float, y: float, scalars: dict) -> tuple[float, float]:
+    """
+    Convert in-game Valorant coordinates to normalized [0, 1] minimap coordinates
+    using the official Valorant API multipliers and scalars.
+
+    Formula (from dash.valorant-api.com/endpoints/maps):
+        norm_x = xMultiplier * x + xScalarToAdd
+        norm_y = yMultiplier * y + yScalarToAdd
+    """
+    nx = scalars["xMultiplier"] * x + scalars["xScalarToAdd"]
+    ny = scalars["yMultiplier"] * y + scalars["yScalarToAdd"]
+    return nx, ny
 
 
 def load_raw_from_db(db_path: Path = DB_PATH) -> dict:
@@ -85,32 +109,6 @@ def load_raw_from_db(db_path: Path = DB_PATH) -> dict:
         site_expr = f"COALESCE(k.{site_col}, '')" if site_col else "''"
         kill_team_expr = f"COALESCE(k.{kill_team_col}, '')" if kill_team_col else "''"
 
-        map_bounds: dict[str, dict[str, float]] = {}
-        bounds_sql = f"""
-            SELECT
-                m.map AS map_name,
-                MIN(pl.location_x) AS min_x,
-                MAX(pl.location_x) AS max_x,
-                MIN(pl.location_y) AS min_y,
-                MAX(pl.location_y) AS max_y
-            FROM player_locations pl
-            JOIN kills k ON {join_clause}
-            JOIN matches m ON m.match_id = k.match_id
-            WHERE pl.location_x IS NOT NULL
-              AND pl.location_y IS NOT NULL
-            GROUP BY m.map
-        """
-        for row in conn.execute(bounds_sql):
-            map_name = row["map_name"]
-            if map_name not in SUPPORTED_MAPS:
-                continue
-            map_bounds[map_name] = {
-                "minX": row["min_x"],
-                "maxX": row["max_x"],
-                "minY": row["min_y"],
-                "maxY": row["max_y"],
-            }
-
         kills_sql = f"""
             SELECT
                 k.kill_id,
@@ -142,8 +140,13 @@ def load_raw_from_db(db_path: Path = DB_PATH) -> dict:
 
         for row in conn.execute(kills_sql, SUPPORTED_MAPS):
             map_name = row["map_name"]
+            scalars = MAP_SCALARS.get(map_name)
+            if scalars is None:
+                continue  # no conversion factors for this map, skip
+
             round_num = str(row["round_num"])
-            raw.setdefault(map_name, {"bounds": map_bounds.get(map_name), "rounds": {}})
+            # coords are now pre-normalized; no bounds needed
+            raw.setdefault(map_name, {"rounds": {}})
             raw[map_name]["rounds"].setdefault(round_num, [])
 
             key = (map_name, row["match_id"], row["round_num"], row["kill_id"])
@@ -163,34 +166,23 @@ def load_raw_from_db(db_path: Path = DB_PATH) -> dict:
                 round_kills.append(kill_obj)
                 kill_lookup[key] = kill_obj
 
-            if row["player_name"] is not None and row["location_x"] is not None and row["location_y"] is not None:
+            if (row["player_name"] is not None
+                    and row["location_x"] is not None
+                    and row["location_y"] is not None):
+                nx, ny = normalize_coord(row["location_x"], row["location_y"], scalars)
                 kill_obj["p"].append(
                     {
                         "n": row["player_name"],
                         "a": row["agent"] or "Unknown",
                         "t": row["team"] or "",
-                        "x": row["location_x"],
-                        "y": row["location_y"],
+                        "x": nx,   # normalized [0, 1]
+                        "y": ny,   # normalized [0, 1]
                     }
                 )
 
         raw = {k: v for k, v in raw.items() if v["rounds"]}
         if not raw:
             raise RuntimeError("No kill/location data was found in valorant.db")
-
-        for map_name, payload in raw.items():
-            if payload["bounds"] is not None:
-                continue
-            xs, ys = [], []
-            for kills in payload["rounds"].values():
-                for kill in kills:
-                    for p in kill["p"]:
-                        xs.append(p["x"])
-                        ys.append(p["y"])
-            if xs and ys:
-                payload["bounds"] = {"minX": min(xs), "maxX": max(xs), "minY": min(ys), "maxY": max(ys)}
-            else:
-                payload["bounds"] = {"minX": 0, "maxX": 1, "minY": 0, "maxY": 1}
 
         return raw
     finally:

@@ -117,13 +117,15 @@ const AGENT_ABBR = {
 };
 
 const MAP_CALIBRATION = {
-  Bind:     { rotation: 90, offsetX: 0.14,   offsetY: 0.07,   scaleX: 0.7, scaleY: 0.7 },
-  Split:    { rotation: 0, offsetX: 0,   offsetY: 0,   scaleX: 1, scaleY: 1 },
-  Breeze:   { rotation: 0, offsetX: 0,   offsetY: 0,   scaleX: 1, scaleY: 1 },
-  Fracture: { rotation: 0, offsetX: 0,   offsetY: 0,   scaleX: 1, scaleY: 1 },
-  Pearl:    { rotation: 0, offsetX: 0,   offsetY: 0,   scaleX: 1, scaleY: 1 },
-  Corrode:    { rotation: 0, offsetX: 0.045,   offsetY: 0.1,   scaleX: 0.9, scaleY: 0.75 },
-  Haven:    { rotation: 0, offsetX: 0,   offsetY: 0,   scaleX: 1, scaleY: 1 },
+  // offsetX/Y and scaleX/Y are fine-tuning knobs only — adjust if dots are slightly
+  // off due to minimap image padding/cropping. With correct API scalars these should
+  // stay at 0 / 1 for most maps.
+  // rotation: Bind's minimap image is physically rotated 90° vs the coordinate space.
+  Bind:     { rotation: 90, offsetX: 0.515, offsetY: 0.55, scaleX: 1, scaleY: 1 },
+  Split:    { rotation: 0,  offsetX: -0.535, offsetY: 0.565, scaleX: 1, scaleY: 1 },
+  Breeze:   { rotation: 90,  offsetX: 0.29, offsetY: 0.29, scaleX: 1, scaleY: 1 },
+  Fracture: { rotation: 90,  offsetX: 0.73, offsetY: 0.73, scaleX: 1, scaleY: 1 },
+  Pearl:    { rotation: 90,  offsetX: 0.4, offsetY: 0.38, scaleX: 0.95, scaleY: 1 },
 };
 
 let currentMap = MAPS[0];
@@ -196,7 +198,6 @@ const imgStatus = document.getElementById('imgStatus');
 
 function abbr(a) { return AGENT_ABBR[a] || a.slice(0,2).toUpperCase(); }
 function getMapData() { return RAW[currentMap]; }
-function getBounds() { return getMapData().bounds; }
 function getRounds() { return Object.keys(getMapData().rounds).map(Number).sort((a,b)=>a-b); }
 function getKills() {
   if (currentRound === null) return [];
@@ -222,17 +223,23 @@ function undoRotation(nx, ny, rotation) {
 }
 
 function toCanvas(x, y) {
-  const b = getBounds();
+  // x and y are already normalized [0, 1] via the Valorant API scalars applied server-side.
+  // Formula used in serve_db.py: nx = xMultiplier * ingame_x + xScalarToAdd
   const vp = getImageViewport();
   const cal = getCalibration();
 
-  let nx = (x - b.minX) / (b.maxX - b.minX);
-  let ny = (y - b.minY) / (b.maxY - b.minY);
+  let nx = x;
+  let ny = y;
 
-  // 🔁 Apply rotation (only affects Bind because of config)
+  // 🪞 Flip x-axis: Valorant minimap images are horizontally mirrored
+  // relative to the in-game coordinate space produced by the API scalars.
+  //nx = 1 - nx;
+  ny = 1 - ny;
+
+  // 🔁 Apply rotation (only affects maps configured in MAP_CALIBRATION, e.g. Bind)
   [nx, ny] = applyRotation(nx, ny, cal.rotation);
 
-  // Apply calibration
+  // Apply per-map calibration tweak (fine offset/scale corrections)
   nx = nx * cal.scaleX + cal.offsetX;
   ny = ny * cal.scaleY + cal.offsetY;
 
@@ -243,7 +250,7 @@ function toCanvas(x, y) {
 }
 
 function fromCanvas(cx, cy) {
-  const b = getBounds();
+  // Returns normalized [0, 1] coordinates (not raw in-game coords).
   const vp = getImageViewport();
   const cal = getCalibration();
 
@@ -254,12 +261,16 @@ function fromCanvas(cx, cy) {
   nx = (nx - cal.offsetX) / cal.scaleX;
   ny = (ny - cal.offsetY) / cal.scaleY;
 
-  // 🔁 Undo rotation (only applies to Bind)
+  // 🔁 Undo rotation (only applies to maps configured with rotation)
   [nx, ny] = undoRotation(nx, ny, cal.rotation);
 
+  // 🪞 Undo x-axis flip
+  nx = 1 - nx;
+
+  // Return normalized coords (in-game coords not recoverable here without scalars)
   return [
-    Math.round(b.minX + nx * (b.maxX - b.minX)),
-    Math.round(b.minY + ny * (b.maxY - b.minY))
+    Math.round(nx * 10000) / 10000,
+    Math.round(ny * 10000) / 10000
   ];
 }
 
