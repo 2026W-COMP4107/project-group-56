@@ -1,0 +1,23 @@
+BIND_GRAPH = {
+    "attacker_spawn": ["a_lobby", "b_long"],
+    "a_lobby":        ["attacker_spawn", "a_short", "a_link"],
+    "a_short":        ["a_lobby", "a_site"],
+    "a_link":         ["a_lobby", "showers", "a_site"],
+    "showers":        ["a_link", "b_link"],
+    "a_site":         ["a_short", "a_link", "heaven", "lamps", "a_teleporter"],
+    "heaven":         ["a_site", "defender_spawn"],
+    "lamps":          ["a_site"],
+    "a_teleporter":   ["a_site", "b_teleporter"],   # teleporter connection
+    "b_teleporter":   ["a_teleporter", "hookah"],
+    "b_long":         ["attacker_spawn", "b_lobby"],
+    "b_lobby":        ["b_long", "b_short", "b_garden"],
+    "b_garden":       ["b_lobby", "b_halls"],
+    "b_halls":        ["b_garden", "b_elbow"],
+    "b_elbow":        ["b_halls", "hookah", "b_short"],
+    "b_short":        ["b_lobby", "b_elbow", "b_site"],
+    "hookah":         ["b_teleporter", "b_elbow", "b_site"],
+    "b_site":         ["b_short", "hookah", "b_link", "cave"],
+    "b_link":         ["b_site", "showers", "cave"],
+    "cave":           ["b_link", "b_site", "defender_spawn"],
+    "defender_spawn": ["heaven", "cave"],
+}
