@@ -62,8 +62,28 @@ def load_raw_from_db(db_path: Path = DB_PATH) -> dict:
             raise RuntimeError("player_locations table does not contain a supported join key")
         join_clause, _ = join_info
 
-        kill_team_col = "killer_team" if "killer_team" in get_table_columns(conn, "kills") else "NULL"
-        site_col = "site" if "site" in get_table_columns(conn, "kills") else "''"
+        player_cols = get_table_columns(conn, "players") if "players" in tables else set()
+        has_players_table = bool(player_cols)
+
+        kill_cols = get_table_columns(conn, "kills")
+        kill_team_col = "killer_team" if "killer_team" in kill_cols else None
+        site_col = "site" if "site" in kill_cols else None
+
+        # New schema stores agent data in players, not player_locations.
+        # Keep a fallback to player_locations.agent for compatibility with older DBs.
+        if has_players_table and {"puuid", "match_id", "agent"}.issubset(player_cols):
+            player_join = "LEFT JOIN players p ON p.puuid = pl.puuid AND p.match_id = k.match_id"
+            agent_expr = "COALESCE(p.agent, pl.agent, '')" if "agent" in pl_cols else "COALESCE(p.agent, '')"
+            team_expr = "COALESCE(pl.team, p.team_id, '')" if "team" in pl_cols else "COALESCE(p.team_id, '')"
+            name_expr = "COALESCE(pl.player_name, p.name)"
+        else:
+            player_join = ""
+            agent_expr = "COALESCE(pl.agent, '')" if "agent" in pl_cols else "''"
+            team_expr = "COALESCE(pl.team, '')" if "team" in pl_cols else "''"
+            name_expr = "pl.player_name" if "player_name" in pl_cols else "NULL"
+
+        site_expr = f"COALESCE(k.{site_col}, '')" if site_col else "''"
+        kill_team_expr = f"COALESCE(k.{kill_team_col}, '')" if kill_team_col else "''"
 
         map_bounds: dict[str, dict[str, float]] = {}
         bounds_sql = f"""
@@ -100,20 +120,21 @@ def load_raw_from_db(db_path: Path = DB_PATH) -> dict:
                 k.killer,
                 k.victim,
                 k.weapon,
-                COALESCE(k.{site_col}, '') AS site,
+                {site_expr} AS site,
                 COALESCE(k.timestamp_ms, CAST(k.timestamp_sec * 1000 AS INTEGER), 0) AS timestamp_ms,
-                COALESCE(k.{kill_team_col}, '') AS killer_team,
-                pl.player_name,
-                COALESCE(pl.agent, '') AS agent,
-                COALESCE(pl.team, '') AS team,
+                {kill_team_expr} AS killer_team,
+                {name_expr} AS player_name,
+                {agent_expr} AS agent,
+                {team_expr} AS team,
                 pl.location_x,
                 pl.location_y
             FROM kills k
             JOIN rounds r ON r.round_id = k.round_id
             JOIN matches m ON m.match_id = k.match_id
             LEFT JOIN player_locations pl ON {join_clause}
+            {player_join}
             WHERE m.map IN ({','.join('?' for _ in SUPPORTED_MAPS)})
-            ORDER BY m.map, k.match_id, r.round_num, timestamp_ms, k.kill_id, pl.player_name
+            ORDER BY m.map, k.match_id, r.round_num, timestamp_ms, k.kill_id, player_name
         """
 
         raw: dict[str, dict] = {}
@@ -157,7 +178,6 @@ def load_raw_from_db(db_path: Path = DB_PATH) -> dict:
         if not raw:
             raise RuntimeError("No kill/location data was found in valorant.db")
 
-        # fill missing bounds from existing player points if needed
         for map_name, payload in raw.items():
             if payload["bounds"] is not None:
                 continue
