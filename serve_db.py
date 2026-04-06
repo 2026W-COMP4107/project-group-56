@@ -105,6 +105,16 @@ def load_raw_from_db(db_path: Path = DB_PATH) -> dict:
 
         site_expr = f"COALESCE(k.{site_col}, '')" if site_col else "''"
 
+        # Resolve victim agent/team from the players table when available
+        if has_players_table and {"puuid", "match_id", "agent"}.issubset(player_cols):
+            victim_agent_expr = "COALESCE(pv.agent, k.victim_agent, '')"
+            victim_team_expr  = "COALESCE(pv.team_id, '')"
+            victim_player_join = "LEFT JOIN players pv ON pv.puuid = k.victim_puuid AND pv.match_id = k.match_id"
+        else:
+            victim_agent_expr  = "COALESCE(k.victim_agent, '')" if "victim_agent" in kill_cols else "''"
+            victim_team_expr   = "''"
+            victim_player_join = ""
+
         kills_sql = f"""
             SELECT
                 k.kill_id,
@@ -122,12 +132,17 @@ def load_raw_from_db(db_path: Path = DB_PATH) -> dict:
                 {team_expr} AS team,
                 pl.location_x,
                 pl.location_y,
-                pl.view_radians
+                pl.view_radians,
+                k.victim_location_x,
+                k.victim_location_y,
+                {victim_agent_expr} AS victim_agent,
+                {victim_team_expr}  AS victim_team
             FROM kills k
             JOIN rounds r ON r.round_id = k.round_id
             JOIN matches m ON m.match_id = k.match_id
             LEFT JOIN player_locations pl ON {join_clause}
             {player_join}
+            {victim_player_join}
             WHERE m.map IN ({','.join('?' for _ in SUPPORTED_MAPS)})
             ORDER BY m.map, k.match_id, r.round_num, timestamp_ms, k.kill_id, player_name
         """
@@ -156,6 +171,18 @@ def load_raw_from_db(db_path: Path = DB_PATH) -> dict:
             kill_obj = kill_lookup.get(key)
 
             if kill_obj is None:
+                vic_entry = None
+                if row["victim_location_x"] is not None and row["victim_location_y"] is not None:
+                    vx, vy = normalize_coord(row["victim_location_x"], row["victim_location_y"], scalars)
+                    vic_entry = {
+                        "n": row["victim"],
+                        "a": row["victim_agent"] or "Unknown",
+                        "t": row["victim_team"] or "",
+                        "x": vx,
+                        "y": vy,
+                        "r": None,
+                    }
+
                 kill_obj = {
                     "i": len(round_kills),
                     "k": row["killer"],
@@ -164,6 +191,7 @@ def load_raw_from_db(db_path: Path = DB_PATH) -> dict:
                     "s": row["site"] or "",
                     "w": row["weapon"],
                     "p": [],
+                    "vic": vic_entry,
                 }
                 round_kills.append(kill_obj)
                 kill_lookup[key] = kill_obj

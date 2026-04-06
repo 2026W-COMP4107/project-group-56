@@ -75,6 +75,7 @@ input[type=range]{accent-color:#3b82f6;width:70px}
       <div class="legend-row"><div class="dot" style="background:#3b82f6"></div>Blue team</div>
       <div class="legend-row"><div class="dot" style="background:#ef4444"></div>Red team</div>
       <div class="legend-row"><div class="dot" style="background:#3b82f6;border:2px solid #facc15"></div>Killer (team color + ★)</div>
+      <div class="legend-row"><div class="dot" style="background:#888;opacity:.55;border:2px solid #ef4444"></div>Victim (dimmed + ✕)</div>
       <div class="legend-row"><span style="color:#94a3b8;font-size:14px;line-height:1">➜</span>Facing direction</div>
       <div class="legend-row" style="font-size:10px;color:#64748b;margin-top:4px">Agent icons load from<br><code style="color:#94a3b8">agent_icons/</code> folder</div>
     </div>
@@ -188,7 +189,10 @@ function loadAgentIcon(agentName) {
 
 function preloadAgentIcons() {
   const kills = getKills();
-  kills.forEach(k => k.p.forEach(p => loadAgentIcon(p.a)));
+  kills.forEach(k => {
+    k.p.forEach(p => loadAgentIcon(p.a));
+    if (k.vic) loadAgentIcon(k.vic.a);
+  });
 }
 
 const wrap = document.getElementById('canvas-wrap');
@@ -465,6 +469,85 @@ function drawMapImage() {
   ictx.restore();
 }
 
+function drawVictim(vic) {
+  if (!vic) return;
+  const [cx, cy] = toCanvas(vic.x, vic.y);
+  const R = 9;
+  const icon = agentIconCache[vic.a];
+  const teamColor = vic.t === 'Blue' ? '#3b82f6' : vic.t === 'Red' ? '#ef4444' : '#888';
+
+  // Desaturated shadow
+  pctx.beginPath();
+  pctx.arc(cx, cy, R + 2, 0, Math.PI * 2);
+  pctx.fillStyle = 'rgba(0,0,0,0.55)';
+  pctx.fill();
+
+  pctx.save();
+  pctx.globalAlpha = 0.55;   // dimmed — victim is dead
+
+  if (icon) {
+    // Dim ring
+    pctx.beginPath();
+    pctx.arc(cx, cy, R + 1.5, 0, Math.PI * 2);
+    pctx.strokeStyle = teamColor;
+    pctx.lineWidth = 2;
+    pctx.stroke();
+
+    // Background circle
+    pctx.beginPath();
+    pctx.arc(cx, cy, R, 0, Math.PI * 2);
+    pctx.fillStyle = 'rgba(15,23,42,0.6)';
+    pctx.fill();
+
+    // Agent icon clipped to circle
+    pctx.beginPath();
+    pctx.arc(cx, cy, R, 0, Math.PI * 2);
+    pctx.clip();
+    pctx.drawImage(icon, cx - R, cy - R, R * 2, R * 2);
+  } else {
+    // Fallback dot
+    pctx.beginPath();
+    pctx.arc(cx, cy, R, 0, Math.PI * 2);
+    pctx.fillStyle = teamColor;
+    pctx.fill();
+    pctx.fillStyle = '#fff';
+    pctx.font = 'bold 7px system-ui';
+    pctx.textAlign = 'center';
+    pctx.textBaseline = 'middle';
+    pctx.fillText(abbr(vic.a), cx, cy);
+  }
+
+  pctx.restore();
+
+  // Skull badge (top-right)
+  const bx = cx + R * 0.65, by = cy - R * 0.65;
+  pctx.beginPath();
+  pctx.arc(bx, by, R * 0.42, 0, Math.PI * 2);
+  pctx.fillStyle = '#1e293b';
+  pctx.fill();
+  pctx.strokeStyle = '#ef4444';
+  pctx.lineWidth = 1;
+  pctx.stroke();
+  pctx.font = `bold ${Math.max(7, Math.floor(R * 0.44))}px system-ui`;
+  pctx.fillStyle = '#ef4444';
+  pctx.textAlign = 'center';
+  pctx.textBaseline = 'middle';
+  pctx.fillText('✕', bx, by + 0.5);
+
+  // Name tag
+  const tag = vic.n.length > 12 ? vic.n.slice(0, 11) + '…' : vic.n;
+  pctx.font = '9px system-ui';
+  pctx.textAlign = 'center';
+  pctx.textBaseline = 'top';
+  const tw = pctx.measureText(tag).width;
+  pctx.fillStyle = 'rgba(0,0,0,0.7)';
+  pctx.fillRect(cx - tw / 2 - 2, cy + R + 2, tw + 4, 13);
+  pctx.globalAlpha = 0.55;
+  pctx.fillStyle = teamColor;
+  pctx.fillText(tag, cx, cy + R + 3);
+  pctx.globalAlpha = 1;
+}
+
 function drawPlayers() {
   pctx.clearRect(0, 0, pc.width, pc.height);
   const kills = getKills();
@@ -475,6 +558,13 @@ function drawPlayers() {
   const sel = currentKillIdx !== null ? kills[currentKillIdx] : null;
   const players = sel ? sel.p : kills.flatMap(k => k.p);
   const killerName = sel ? sel.k : null;
+
+  // Draw victim(s) first so live players render on top
+  if (sel) {
+    drawVictim(sel.vic);
+  } else {
+    kills.forEach(k => drawVictim(k.vic));
+  }
 
   players.forEach(p => {
     const [cx, cy] = toCanvas(p.x, p.y);
@@ -855,25 +945,37 @@ function setMode() {
   drawPlayers(); drawZones();
 }
 
-// Hover tooltip
 pc.onmousemove = (e) => {
   if (mode !== 'view') return;
   const rect = pc.getBoundingClientRect();
   const mx = e.clientX - rect.left, my = e.clientY - rect.top;
   const kills = getKills();
   const players = currentKillIdx !== null ? kills[currentKillIdx]?.p||[] : kills.flatMap(k=>k.p);
-  let found = null, minD = 14;
+  const victims = currentKillIdx !== null
+    ? (kills[currentKillIdx]?.vic ? [kills[currentKillIdx].vic] : [])
+    : kills.map(k => k.vic).filter(Boolean);
+
+  let found = null, isVic = false, minD = 14;
   players.forEach(p => {
     const [cx,cy] = toCanvas(p.x, p.y);
     const d = Math.hypot(cx-mx, cy-my);
-    if (d < minD) { minD=d; found=p; }
+    if (d < minD) { minD=d; found=p; isVic=false; }
   });
+  victims.forEach(v => {
+    const [cx,cy] = toCanvas(v.x, v.y);
+    const d = Math.hypot(cx-mx, cy-my);
+    if (d < minD) { minD=d; found=v; isVic=true; }
+  });
+
   if (found) {
     tip.style.display='block'; tip.style.left=(e.clientX+14)+'px'; tip.style.top=(e.clientY-10)+'px';
     const deg = found.r === null || found.r === undefined || Number.isNaN(Number(found.r))
       ? 'Unknown'
       : ((Number(found.r) * 180 / Math.PI) % 360 + 360).toFixed(1) + '°';
-    tip.innerHTML=`<b>${found.n}</b><br>${found.a} · <span style="color:${found.t==='Blue'?'#60a5fa':'#f87171'}">${found.t}</span><br><span style="color:#64748b">(${found.x}, ${found.y})</span><br><span style="color:#64748b">Facing:</span> ${deg}`;
+    const statusLabel = isVic
+      ? '<span style="color:#ef4444">☠ Victim</span>'
+      : `<span style="color:${found.t==='Blue'?'#60a5fa':'#f87171'}">${found.t}</span>`;
+    tip.innerHTML=`<b>${found.n}</b><br>${found.a} · ${statusLabel}<br><span style="color:#64748b">(${found.x.toFixed ? found.x.toFixed(4) : found.x}, ${found.y.toFixed ? found.y.toFixed(4) : found.y})</span>${isVic?'':('<br><span style="color:#64748b">Facing:</span> '+deg)}`;
   } else { tip.style.display='none'; }
 };
 pc.onmouseleave = () => { tip.style.display='none'; };
