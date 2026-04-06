@@ -121,7 +121,8 @@ def load_raw_from_db(db_path: Path = DB_PATH) -> dict:
                 {agent_expr} AS agent,
                 {team_expr} AS team,
                 pl.location_x,
-                pl.location_y
+                pl.location_y,
+                pl.view_radians
             FROM kills k
             JOIN rounds r ON r.round_id = k.round_id
             JOIN matches m ON m.match_id = k.match_id
@@ -179,6 +180,7 @@ def load_raw_from_db(db_path: Path = DB_PATH) -> dict:
                     "t": row["team"] or "",
                     "x": nx,
                     "y": ny,
+                    "r": row["view_radians"],
                 })
 
         raw = {

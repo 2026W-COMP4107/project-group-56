@@ -75,6 +75,7 @@ input[type=range]{accent-color:#3b82f6;width:70px}
       <div class="legend-row"><div class="dot" style="background:#3b82f6"></div>Blue team</div>
       <div class="legend-row"><div class="dot" style="background:#ef4444"></div>Red team</div>
       <div class="legend-row"><div class="dot" style="background:#3b82f6;border:2px solid #facc15"></div>Killer (team color + ★)</div>
+      <div class="legend-row"><span style="color:#94a3b8;font-size:14px;line-height:1">➜</span>Facing direction</div>
       <div class="legend-row" style="font-size:10px;color:#64748b;margin-top:4px">Agent icons load from<br><code style="color:#94a3b8">agent_icons/</code> folder</div>
     </div>
     <div class="card">
@@ -296,6 +297,86 @@ function fromCanvas(cx, cy) {
   ];
 }
 
+
+function getFacingUnitVector(player) {
+  if (player.r === null || player.r === undefined || Number.isNaN(Number(player.r))) {
+    return null;
+  }
+
+  const EPS = 0.01;
+  const angle = Number(player.r);
+  const [sx, sy] = toCanvas(player.x, player.y);
+  const [ex, ey] = toCanvas(
+    player.x + Math.cos(angle) * EPS,
+    player.y + Math.sin(angle) * EPS
+  );
+
+  const dx = ex - sx;
+  const dy = ey - sy;
+  const mag = Math.hypot(dx, dy);
+  if (!mag || mag < 0.0001) return null;
+
+  return [dx / mag, dy / mag];
+}
+
+function drawFacingArrow(player, cx, cy, radius, teamColor, isKiller) {
+  const unit = getFacingUnitVector(player);
+  if (!unit) return;
+
+  const [ux, uy] = unit;
+
+  const startOffset = radius + 2;
+  const size = isKiller ? 10 : 8;        // overall size of arrow
+  const width = isKiller ? 5 : 4;        // width of ">" shape
+
+  // Tip of arrow
+  const tipX = cx + ux * (startOffset + size);
+  const tipY = cy + uy * (startOffset + size);
+
+  // Perpendicular vector
+  const px = -uy;
+  const py = ux;
+
+  // Two back points (forming ">")
+  const leftX = cx + ux * startOffset + px * width;
+  const leftY = cy + uy * startOffset + py * width;
+
+  const rightX = cx + ux * startOffset - px * width;
+  const rightY = cy + uy * startOffset - py * width;
+
+  pctx.save();
+
+  // Outline (black border)
+  pctx.beginPath();
+  pctx.moveTo(tipX, tipY);
+  pctx.lineTo(leftX, leftY);
+  pctx.lineTo(rightX, rightY);
+  pctx.closePath();
+  pctx.fillStyle = 'rgba(0,0,0,0.75)';
+  pctx.fill();
+
+  // Inner colored arrow
+  const shrink = 0.9;
+  pctx.beginPath();
+  pctx.moveTo(
+    cx + ux * (startOffset + size * shrink),
+    cy + uy * (startOffset + size * shrink)
+  );
+  pctx.lineTo(
+    cx + ux * startOffset + px * (width * shrink),
+    cy + uy * startOffset + py * (width * shrink)
+  );
+  pctx.lineTo(
+    cx + ux * startOffset - px * (width * shrink),
+    cy + uy * startOffset - py * (width * shrink)
+  );
+  pctx.closePath();
+  pctx.fillStyle = teamColor;
+  pctx.fill();
+
+  pctx.restore();
+}
+
 function resize() {
   const r = wrap.getBoundingClientRect();
   ic.width = pc.width = zc.width = r.width;
@@ -401,6 +482,8 @@ function drawPlayers() {
     const R = isKiller ? 11 : 9;
     const teamColor = p.t === 'Blue' ? '#3b82f6' : p.t === 'Red' ? '#ef4444' : '#888';
     const icon = agentIconCache[p.a];
+
+    drawFacingArrow(p, cx, cy, R, teamColor, isKiller);
 
     // Shadow ring
     pctx.beginPath();
@@ -787,7 +870,10 @@ pc.onmousemove = (e) => {
   });
   if (found) {
     tip.style.display='block'; tip.style.left=(e.clientX+14)+'px'; tip.style.top=(e.clientY-10)+'px';
-    tip.innerHTML=`<b>${found.n}</b><br>${found.a} · <span style="color:${found.t==='Blue'?'#60a5fa':'#f87171'}">${found.t}</span><br><span style="color:#64748b">(${found.x}, ${found.y})</span>`;
+    const deg = found.r === null || found.r === undefined || Number.isNaN(Number(found.r))
+      ? 'Unknown'
+      : ((Number(found.r) * 180 / Math.PI) % 360 + 360).toFixed(1) + '°';
+    tip.innerHTML=`<b>${found.n}</b><br>${found.a} · <span style="color:${found.t==='Blue'?'#60a5fa':'#f87171'}">${found.t}</span><br><span style="color:#64748b">(${found.x}, ${found.y})</span><br><span style="color:#64748b">Facing:</span> ${deg}`;
   } else { tip.style.display='none'; }
 };
 pc.onmouseleave = () => { tip.style.display='none'; };
