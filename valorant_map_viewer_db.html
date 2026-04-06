@@ -72,8 +72,7 @@ input[type=range]{accent-color:#3b82f6;width:70px}
       <h3>Legend</h3>
       <div class="legend-row"><div class="dot" style="background:#3b82f6"></div>Blue team</div>
       <div class="legend-row"><div class="dot" style="background:#ef4444"></div>Red team</div>
-      <div class="legend-row"><div class="dot" style="background:#facc15;border:1px solid #555"></div>Killer (★ badge)</div>
-      <div class="legend-row"><div class="dot" style="background:#1e293b;border:2px solid #ef4444"></div>Victim (× overlay)</div>
+      <div class="legend-row"><div class="dot" style="background:#3b82f6;border:2px solid #facc15"></div>Killer (team color + ★)</div>
       <div class="legend-row" style="font-size:10px;color:#64748b;margin-top:4px">Agent icons load from<br><code style="color:#94a3b8">agent_icons/</code> folder</div>
     </div>
     <div class="card">
@@ -86,7 +85,7 @@ input[type=range]{accent-color:#3b82f6;width:70px}
     </div>
     <div class="card">
       <h3>Zones <span class="sep">— draw mode to add</span></h3>
-      <div id="zone-list"><div style="font-size:11px;color:#475569">No zones. Switch to "Draw zones" then drag on the map.</div></div>
+      <div id="zone-list"><div style="font-size:11px;color:#475569">No zones. Switch to "Draw zones", click to place points, double-click to finish.</div></div>
       <button id="exportZonesPanel" style="width:100%;margin-top:8px;height:26px;font-size:11px">Export zones JSON ↓</button>
     </div>
   </div>
@@ -121,7 +120,7 @@ const MAP_CALIBRATION = {
   // off due to minimap image padding/cropping. With correct API scalars these should
   // stay at 0 / 1 for most maps.
   // rotation: Bind's minimap image is physically rotated 90° vs the coordinate space.
-  Bind:     { rotation: 90, offsetX: 0.515, offsetY: 0.55, scaleX: 1, scaleY: 1 },
+  Bind:     { rotation: 90, offsetX: 0.51, offsetY: 0.55, scaleX: 0.95, scaleY: 1 },
   Split:    { rotation: 0,  offsetX: -0.535, offsetY: 0.565, scaleX: 1, scaleY: 1 },
   Breeze:   { rotation: 90,  offsetX: 0.29, offsetY: 0.29, scaleX: 1, scaleY: 1 },
   Fracture: { rotation: 90,  offsetX: 0.73, offsetY: 0.73, scaleX: 1, scaleY: 1 },
@@ -133,9 +132,8 @@ let currentRound = null;
 let currentKillIdx = null;
 let mode = 'view';
 let zones = {};
-let drawing = false;
-let drawStart = null;
-let drawCurrent = null;
+let polyPoints = [];      // canvas-space points being drawn for the current polygon
+let polyMouse = null;     // current mouse position while drawing
 let mapImage = null;
 let mapOpacity = 0.8;
 let imageCache = {};
@@ -372,33 +370,13 @@ function drawPlayers() {
   const sel = currentKillIdx !== null ? kills[currentKillIdx] : null;
   const players = sel ? sel.p : kills.flatMap(k => k.p);
   const killerName = sel ? sel.k : null;
-  const victimName = sel ? sel.v : null;
-
-  // Draw kill line first (under icons/dots)
-  if (sel && killerName && victimName) {
-    const kp = sel.p.find(p => p.n === killerName);
-    const vp = sel.p.find(p => p.n === victimName);
-    if (kp && vp) {
-      const [kx, ky] = toCanvas(kp.x, kp.y);
-      const [vx, vy] = toCanvas(vp.x, vp.y);
-      pctx.beginPath();
-      pctx.moveTo(kx, ky);
-      pctx.lineTo(vx, vy);
-      pctx.strokeStyle = 'rgba(250,204,21,0.5)';
-      pctx.lineWidth = 1.5;
-      pctx.setLineDash([5,3]);
-      pctx.stroke();
-      pctx.setLineDash([]);
-    }
-  }
 
   players.forEach(p => {
     const [cx, cy] = toCanvas(p.x, p.y);
     const isKiller = p.n === killerName;
-    const isVictim = p.n === victimName;
-    const R = isKiller || isVictim ? 11 : 9;
+    const R = isKiller ? 11 : 9;
     const teamColor = p.t === 'Blue' ? '#3b82f6' : p.t === 'Red' ? '#ef4444' : '#888';
-    const icon = agentIconCache[p.a]; // HTMLImageElement or null/undefined
+    const icon = agentIconCache[p.a];
 
     // Shadow ring
     pctx.beginPath();
@@ -408,17 +386,17 @@ function drawPlayers() {
 
     if (icon) {
       // --- AGENT ICON MODE ---
-      // Coloured ring: team for normal, gold for killer, red for victim
+      // Ring: always team color; killer gets thicker ring to stand out
       pctx.beginPath();
       pctx.arc(cx, cy, R + 1.5, 0, Math.PI * 2);
-      pctx.strokeStyle = isKiller ? '#facc15' : isVictim ? '#ef4444' : teamColor;
-      pctx.lineWidth = isKiller || isVictim ? 3 : 2;
+      pctx.strokeStyle = teamColor;
+      pctx.lineWidth = isKiller ? 3.5 : 2;
       pctx.stroke();
 
-      // Optional coloured background circle behind icon
+      // Background circle behind icon
       pctx.beginPath();
       pctx.arc(cx, cy, R, 0, Math.PI * 2);
-      pctx.fillStyle = isKiller ? 'rgba(250,204,21,0.25)' : isVictim ? 'rgba(239,68,68,0.25)' : 'rgba(15,23,42,0.6)';
+      pctx.fillStyle = 'rgba(15,23,42,0.6)';
       pctx.fill();
 
       // Clip to circle and draw icon
@@ -426,32 +404,11 @@ function drawPlayers() {
       pctx.beginPath();
       pctx.arc(cx, cy, R, 0, Math.PI * 2);
       pctx.clip();
-      // Draw icon centered; icons are typically square portraits
-      const iconSize = R * 2;
-      pctx.drawImage(icon, cx - R, cy - R, iconSize, iconSize);
+      pctx.drawImage(icon, cx - R, cy - R, R * 2, R * 2);
       pctx.restore();
 
-      // Dead (victim) X overlay
-      if (isVictim) {
-        pctx.save();
-        pctx.strokeStyle = '#ef4444';
-        pctx.lineWidth = 2.5;
-        pctx.globalAlpha = 0.9;
-        const x0 = cx - R * 0.55, y0 = cy - R * 0.55;
-        const x1 = cx + R * 0.55, y1 = cy + R * 0.55;
-        pctx.beginPath(); pctx.moveTo(x0, y0); pctx.lineTo(x1, y1); pctx.stroke();
-        pctx.beginPath(); pctx.moveTo(x1, y0); pctx.lineTo(x0, y1); pctx.stroke();
-        pctx.restore();
-      }
-
-      // Kill star for killer
+      // Gold star badge (top-right corner) for killer
       if (isKiller) {
-        pctx.save();
-        pctx.fillStyle = '#facc15';
-        pctx.font = `bold ${R * 0.9}px system-ui`;
-        pctx.textAlign = 'center';
-        pctx.textBaseline = 'middle';
-        // Small star badge in top-right corner
         const bx = cx + R * 0.6, by = cy - R * 0.6;
         pctx.beginPath();
         pctx.arc(bx, by, R * 0.38, 0, Math.PI * 2);
@@ -459,31 +416,47 @@ function drawPlayers() {
         pctx.fill();
         pctx.fillStyle = '#1e293b';
         pctx.font = `bold ${Math.max(7, R * 0.4)}px system-ui`;
+        pctx.textAlign = 'center';
+        pctx.textBaseline = 'middle';
         pctx.fillText('★', bx, by + 1);
-        pctx.restore();
       }
 
     } else {
       // --- FALLBACK: DOT + ABBREVIATION MODE ---
       pctx.beginPath();
       pctx.arc(cx, cy, R, 0, Math.PI * 2);
-      pctx.fillStyle = isKiller ? '#facc15' : isVictim ? '#0f172a' : teamColor;
+      pctx.fillStyle = teamColor;
       pctx.fill();
 
+      // Thicker border for killer
       pctx.beginPath();
       pctx.arc(cx, cy, R + 1, 0, Math.PI * 2);
-      pctx.strokeStyle = isVictim ? '#ef4444' : isKiller ? '#facc15' : teamColor;
-      pctx.lineWidth = isKiller || isVictim ? 2 : 1.5;
+      pctx.strokeStyle = teamColor;
+      pctx.lineWidth = isKiller ? 3 : 1.5;
       pctx.stroke();
 
-      pctx.fillStyle = isKiller ? '#1e293b' : '#fff';
+      // Gold star badge for killer (dot mode)
+      if (isKiller) {
+        const bx = cx + R * 0.6, by = cy - R * 0.6;
+        pctx.beginPath();
+        pctx.arc(bx, by, R * 0.38, 0, Math.PI * 2);
+        pctx.fillStyle = '#facc15';
+        pctx.fill();
+        pctx.fillStyle = '#1e293b';
+        pctx.font = `bold ${Math.max(7, R * 0.4)}px system-ui`;
+        pctx.textAlign = 'center';
+        pctx.textBaseline = 'middle';
+        pctx.fillText('★', bx, by + 1);
+      }
+
+      pctx.fillStyle = '#fff';
       pctx.font = `bold 7px system-ui`;
       pctx.textAlign = 'center';
       pctx.textBaseline = 'middle';
       pctx.fillText(abbr(p.a), cx, cy);
     }
 
-    // Name tag below icon/dot (same for both modes)
+    // Name tag below icon/dot
     const tag = p.n.length > 12 ? p.n.slice(0, 11) + '…' : p.n;
     pctx.font = '9px system-ui';
     pctx.textAlign = 'center';
@@ -491,7 +464,7 @@ function drawPlayers() {
     const tw = pctx.measureText(tag).width;
     pctx.fillStyle = 'rgba(0,0,0,0.7)';
     pctx.fillRect(cx - tw / 2 - 2, cy + R + 2, tw + 4, 13);
-    pctx.fillStyle = isKiller ? '#facc15' : isVictim ? '#ef4444' : teamColor;
+    pctx.fillStyle = isKiller ? '#facc15' : teamColor;
     pctx.fillText(tag, cx, cy + R + 3);
   });
 }
@@ -533,38 +506,83 @@ function drawHeatmap(kills) {
 
 function drawZones() {
   zctx.clearRect(0, 0, zc.width, zc.height);
+
+  // Draw saved zones
   (zones[currentMap] || []).forEach((z, i) => {
-    const [x1,y1] = toCanvas(z.x1, z.y1);
-    const [x2,y2] = toCanvas(z.x2, z.y2);
+    if (!z.points || z.points.length < 2) return;
     const col = ZONE_COLORS[i % ZONE_COLORS.length];
-    const rx = Math.min(x1,x2), ry = Math.min(y1,y2);
-    const rw = Math.abs(x2-x1), rh = Math.abs(y2-y1);
-    zctx.fillStyle = col + '2a';
+
+    // Convert stored normalized points back to canvas coords
+    const pts = z.points.map(([nx, ny]) => toCanvas(nx, ny));
+
+    zctx.beginPath();
+    zctx.moveTo(pts[0][0], pts[0][1]);
+    for (let j = 1; j < pts.length; j++) zctx.lineTo(pts[j][0], pts[j][1]);
+    zctx.closePath();
+    zctx.fillStyle = col + '33';
+    zctx.fill();
     zctx.strokeStyle = col;
     zctx.lineWidth = 2;
-    zctx.fillRect(rx, ry, rw, rh);
-    zctx.strokeRect(rx, ry, rw, rh);
-    // Label background
+    zctx.setLineDash([]);
+    zctx.stroke();
+
+    // Label at centroid
+    const cx = pts.reduce((s, p) => s + p[0], 0) / pts.length;
+    const cy = pts.reduce((s, p) => s + p[1], 0) / pts.length;
+    zctx.font = 'bold 11px system-ui';
     const lw = zctx.measureText(z.name).width + 8;
     zctx.fillStyle = col + 'cc';
-    zctx.fillRect(rx, ry, lw, 18);
+    zctx.fillRect(cx - lw / 2, cy - 9, lw, 18);
     zctx.fillStyle = '#fff';
-    zctx.font = 'bold 11px system-ui';
-    zctx.fillText(z.name, rx+4, ry+13);
+    zctx.textAlign = 'center';
+    zctx.textBaseline = 'middle';
+    zctx.fillText(z.name, cx, cy);
   });
-  if (drawing && drawStart && drawCurrent) {
-    const col = ZONE_COLORS[(zones[currentMap]||[]).length % ZONE_COLORS.length];
-    zctx.fillStyle = col + '22';
+
+  // Draw polygon in progress
+  if (polyPoints.length > 0) {
+    const col = ZONE_COLORS[(zones[currentMap] || []).length % ZONE_COLORS.length];
+    zctx.beginPath();
+    zctx.moveTo(polyPoints[0][0], polyPoints[0][1]);
+    for (let j = 1; j < polyPoints.length; j++) zctx.lineTo(polyPoints[j][0], polyPoints[j][1]);
+    if (polyMouse) zctx.lineTo(polyMouse[0], polyMouse[1]);
     zctx.strokeStyle = col;
     zctx.lineWidth = 2;
-    zctx.setLineDash([6,3]);
-    const rx = Math.min(drawStart[0], drawCurrent[0]);
-    const ry = Math.min(drawStart[1], drawCurrent[1]);
-    const rw = Math.abs(drawCurrent[0]-drawStart[0]);
-    const rh = Math.abs(drawCurrent[1]-drawStart[1]);
-    zctx.fillRect(rx, ry, rw, rh);
-    zctx.strokeRect(rx, ry, rw, rh);
+    zctx.setLineDash([6, 3]);
+    zctx.stroke();
     zctx.setLineDash([]);
+
+    // Fill preview
+    if (polyPoints.length > 1) {
+      zctx.beginPath();
+      zctx.moveTo(polyPoints[0][0], polyPoints[0][1]);
+      polyPoints.forEach(([x, y]) => zctx.lineTo(x, y));
+      if (polyMouse) zctx.lineTo(polyMouse[0], polyMouse[1]);
+      zctx.closePath();
+      zctx.fillStyle = col + '22';
+      zctx.fill();
+    }
+
+    // Vertex dots
+    polyPoints.forEach(([x, y], idx) => {
+      zctx.beginPath();
+      zctx.arc(x, y, idx === 0 ? 6 : 4, 0, Math.PI * 2);
+      zctx.fillStyle = idx === 0 ? col : col + 'cc';
+      zctx.fill();
+      zctx.strokeStyle = '#fff';
+      zctx.lineWidth = 1;
+      zctx.stroke();
+    });
+
+    // Hint
+    zctx.font = '11px system-ui';
+    zctx.fillStyle = 'rgba(255,255,255,0.7)';
+    zctx.textAlign = 'left';
+    zctx.textBaseline = 'top';
+    zctx.fillStyle = 'rgba(0,0,0,0.5)';
+    zctx.fillRect(8, 8, 260, 18);
+    zctx.fillStyle = '#e2e8f0';
+    zctx.fillText(`${polyPoints.length} point${polyPoints.length!==1?'s':''} — double-click or click ① to close  |  Esc to cancel`, 12, 11);
   }
 }
 
@@ -616,7 +634,7 @@ function updateZonePanel() {
   const mapZones = zones[currentMap] || [];
   const list = document.getElementById('zone-list');
   if (!mapZones.length) {
-    list.innerHTML = '<div style="font-size:11px;color:#475569">No zones. Switch to "Draw zones" then drag on the map.</div>'; return;
+    list.innerHTML = '<div style="font-size:11px;color:#475569">No zones. Switch to "Draw zones", click to place points, double-click to finish.</div>'; return;
   }
   list.innerHTML = '';
   mapZones.forEach((z, i) => {
@@ -652,6 +670,7 @@ function populateMapOptions() {
 
 mapSel.onchange = () => {
   currentMap = mapSel.value; currentRound = null; currentKillIdx = null;
+  polyPoints = []; polyMouse = null;
   imageCache = {};  // allow reload
   loadMapImage(currentMap);
   populateRounds(); updateZonePanel();
@@ -676,7 +695,9 @@ function setMode() {
   ['btnView','btnZone','btnHeat'].forEach(id => document.getElementById(id).classList.remove('active'));
   document.getElementById({view:'btnView',zone:'btnZone',heat:'btnHeat'}[mode]).classList.add('active');
   zc.classList.toggle('drawing', mode === 'zone');
-  drawPlayers();
+  // Cancel any polygon in progress when leaving zone mode
+  polyPoints = []; polyMouse = null;
+  drawPlayers(); drawZones();
 }
 
 // Hover tooltip
@@ -699,34 +720,56 @@ pc.onmousemove = (e) => {
 };
 pc.onmouseleave = () => { tip.style.display='none'; };
 
-// Zone drawing
-zc.onmousedown = (e) => {
-  if (mode!=='zone') return;
+// Zone drawing — polygon mode: click to add points, double-click or click first point to close
+function getZoneCanvasPos(e) {
   const rect = zc.getBoundingClientRect();
-  drawStart = [e.clientX-rect.left, e.clientY-rect.top];
-  drawing = true;
-};
-zc.onmousemove = (e) => {
-  if (!drawing) return;
-  const rect = zc.getBoundingClientRect();
-  drawCurrent = [e.clientX-rect.left, e.clientY-rect.top];
+  return [e.clientX - rect.left, e.clientY - rect.top];
+}
+
+function finishPolygon() {
+  if (polyPoints.length < 3) { polyPoints = []; polyMouse = null; drawZones(); return; }
+  const name = prompt('Zone name (e.g. "A Site", "Mid"):');
+  if (!name) { polyPoints = []; polyMouse = null; drawZones(); return; }
+  // Store points as normalized coords so they survive resize/map changes
+  const normPoints = polyPoints.map(([cx, cy]) => fromCanvas(cx, cy));
+  if (!zones[currentMap]) zones[currentMap] = [];
+  zones[currentMap].push({ name, points: normPoints });
+  polyPoints = []; polyMouse = null;
+  drawZones(); updateZonePanel();
+}
+
+zc.onclick = (e) => {
+  if (mode !== 'zone') return;
+  const pos = getZoneCanvasPos(e);
+  // Click near first point to close polygon (snap radius 10px)
+  if (polyPoints.length >= 3) {
+    const dx = pos[0] - polyPoints[0][0], dy = pos[1] - polyPoints[0][1];
+    if (Math.hypot(dx, dy) < 10) { finishPolygon(); return; }
+  }
+  polyPoints.push(pos);
   drawZones();
 };
-zc.onmouseup = (e) => {
-  if (!drawing||!drawStart) return;
-  drawing = false;
-  const rect = zc.getBoundingClientRect();
-  const end = [e.clientX-rect.left, e.clientY-rect.top];
-  if (Math.abs(end[0]-drawStart[0])<10||Math.abs(end[1]-drawStart[1])<10) { drawStart=null; drawCurrent=null; drawZones(); return; }
-  const name = prompt('Zone name (e.g. "A Site", "Mid", "B Site"):');
-  if (!name) { drawStart=null; drawCurrent=null; drawZones(); return; }
-  const [x1,y1] = fromCanvas(drawStart[0], drawStart[1]);
-  const [x2,y2] = fromCanvas(end[0], end[1]);
-  if (!zones[currentMap]) zones[currentMap] = [];
-  zones[currentMap].push({name, x1:Math.min(x1,x2), y1:Math.min(y1,y2), x2:Math.max(x1,x2), y2:Math.max(y1,y2)});
-  drawStart=null; drawCurrent=null;
-  drawZones(); updateZonePanel();
+
+zc.ondblclick = (e) => {
+  if (mode !== 'zone') return;
+  // Remove the last point added by the first click of the double-click
+  if (polyPoints.length > 0) polyPoints.pop();
+  finishPolygon();
 };
+
+zc.onmousemove = (e) => {
+  if (mode !== 'zone') return;
+  polyMouse = getZoneCanvasPos(e);
+  if (polyPoints.length > 0) drawZones();
+};
+
+zc.onmouseleave = () => { polyMouse = null; if (polyPoints.length > 0) drawZones(); };
+
+document.addEventListener('keydown', (e) => {
+  if (e.key === 'Escape' && mode === 'zone' && polyPoints.length > 0) {
+    polyPoints = []; polyMouse = null; drawZones();
+  }
+});
 
 new ResizeObserver(resize).observe(wrap);
 async function initializeApp() {
