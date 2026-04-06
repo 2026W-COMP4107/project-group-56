@@ -25,6 +25,7 @@ import numpy as np
 import os
 import random
 import json
+import math
 from pathlib import Path
 from datetime import datetime
 
@@ -44,17 +45,17 @@ SIDES    = ["attack", "defense"]
 PLAYERS  = [f"Player{i}" for i in range(1, 21)] 
 
 
-conn = sqlite3.connect(DB_PATH)
-cur = conn.cursor()
+# conn = sqlite3.connect(DB_PATH)
+# cur = conn.cursor()
 
-cur.execute("SELECT name FROM sqlite_master WHERE type='table';")
-tables = cur.fetchall()
+# cur.execute("SELECT name FROM sqlite_master WHERE type='table';")
+# tables = cur.fetchall()
 
-for table in tables:
-    cur.execute(f"DROP TABLE IF EXISTS {table[0]};")
+# for table in tables:
+#     cur.execute(f"DROP TABLE IF EXISTS {table[0]};")
 
-conn.commit()
-conn.close()
+# conn.commit()
+# conn.close()
 
 
 def load_from_json_file(json_path: str, db_path: str = DB_PATH) -> None:
@@ -135,13 +136,14 @@ def load_from_json_file(json_path: str, db_path: str = DB_PATH) -> None:
 
 def prompt_for_file_selection(json_folder: str = "json", db_path: str = DB_PATH) -> None:
     """
-    Prompts user to select a TXT file from the json folder and loads it into the database.
-    Displays indexed file names for easy selection.
+    Prompts user to select a JSON file from the json folder and its subdirectories.
+    Displays indexed file names organized by map for easy selection.
+    Recursively finds all .json files in json folder and subfolders.
     
     Parameters
     ----------
     json_folder : str
-        Path to the folder containing JSON/TXT files
+        Path to the folder containing JSON files (may have map subdirectories)
     db_path : str
         Path to the SQLite database
     """
@@ -151,17 +153,37 @@ def prompt_for_file_selection(json_folder: str = "json", db_path: str = DB_PATH)
         print(f"[data_loader] Error: Folder '{json_folder}' does not exist.")
         return
     
-    txt_files = sorted(list(folder_path.glob("*.txt")))
+    # Recursively find all .json files
+    json_files = sorted(list(folder_path.glob("**/*.json")))
     
-    if not txt_files:
-        print(f"[data_loader] No TXT files found in '{json_folder}'.")
+    if not json_files:
+        print(f"[data_loader] No JSON files found in '{json_folder}' or subdirectories.")
         return
     
+    # Group files by map subfolder for display
+    files_by_map = {}
+    for file_path in json_files:
+        relative_path = file_path.relative_to(folder_path)
+        map_name = relative_path.parts[0] if len(relative_path.parts) > 1 else "root"
+        if map_name not in files_by_map:
+            files_by_map[map_name] = []
+        files_by_map[map_name].append(file_path)
+    
     print(f"\n[data_loader] Available files in '{json_folder}':")
-    print("=" * 60)
-    for idx, file_path in enumerate(txt_files, 1):
-        print(f"  [{idx}] {file_path.name}")
-    print("=" * 60)
+    print("=" * 70)
+    file_index = 1
+    index_to_path = {}
+    
+    for map_name in sorted(files_by_map.keys()):
+        if map_name != "root":
+            print(f"\n  {map_name}:")
+        for file_path in sorted(files_by_map[map_name]):
+            display_name = file_path.name
+            print(f"    [{file_index}] {display_name}")
+            index_to_path[file_index] = file_path
+            file_index += 1
+    
+    print("=" * 70)
     
     while True:
         try:
@@ -171,15 +193,15 @@ def prompt_for_file_selection(json_folder: str = "json", db_path: str = DB_PATH)
                 print("[data_loader] Cancelled.")
                 return
             
-            file_idx = int(selection) - 1
+            file_idx = int(selection)
             
-            if file_idx < 0 or file_idx >= len(txt_files):
-                print(f"[data_loader] Invalid selection. Please enter a number between 1 and {len(txt_files)}.")
+            if file_idx not in index_to_path:
+                print(f"[data_loader] Invalid selection. Please enter a number between 1 and {len(json_files)}.")
                 continue
             
-            selected_file = txt_files[file_idx]
+            selected_file = index_to_path[file_idx]
             
-            print(f"[data_loader] Loading file: {selected_file.name}")
+            print(f"\n[data_loader] Loading file: {selected_file}")
             try:
                 with open(selected_file, 'r', encoding='utf-8') as f:
                     data = json.load(f)
@@ -199,6 +221,67 @@ def prompt_for_file_selection(json_folder: str = "json", db_path: str = DB_PATH)
             break
         except ValueError:
             print("[data_loader] Invalid input. Please enter a valid number or 'q' to quit.")
+
+
+def load_all_json_files(json_folder: str = "json", db_path: str = DB_PATH) -> int:
+    """
+    Loads all JSON files from the json folder and subdirectories into the database.
+    Automatically discovers and loads all .json files recursively.
+    
+    Parameters
+    ----------
+    json_folder : str
+        Path to the folder containing JSON files
+    db_path : str
+        Path to the SQLite database
+    
+    Returns
+    -------
+    int
+        Total number of matches loaded
+    """
+    folder_path = Path(json_folder)
+    
+    if not folder_path.exists():
+        print(f"[data_loader] Error: Folder '{json_folder}' does not exist.")
+        return 0
+    
+    # Recursively find all .json files
+    json_files = sorted(list(folder_path.glob("**/*.json")))
+    
+    if not json_files:
+        print(f"[data_loader] No JSON files found in '{json_folder}' or subdirectories.")
+        return 0
+    
+    total_matches = 0
+    print(f"\n[data_loader] Found {len(json_files)} JSON files. Loading...")
+    print("=" * 70)
+    
+    for idx, file_path in enumerate(json_files, 1):
+        try:
+            with open(file_path, 'r', encoding='utf-8') as f:
+                data = json.load(f)
+            
+            if isinstance(data, dict) and 'data' in data:
+                matches = data['data']
+            elif isinstance(data, list):
+                matches = data
+            else:
+                matches = [data]
+            
+            match_count = len(matches) if isinstance(matches, list) else 1
+            _insert_matches_to_db(matches, db_path)
+            total_matches += match_count
+            
+            relative_path = file_path.relative_to(folder_path)
+            print(f"  [{idx}/{len(json_files)}] {relative_path} → {match_count} match(es)")
+        except Exception as e:
+            relative_path = file_path.relative_to(folder_path)
+            print(f"  [{idx}/{len(json_files)}] {relative_path} → ERROR: {e}")
+    
+    print("=" * 70)
+    print(f"[data_loader] Total loaded: {total_matches} matches from {len(json_files)} files.")
+    return total_matches
 
 
 ###
@@ -489,6 +572,310 @@ def _insert_matches_to_db(matches_data, db_path: str = DB_PATH) -> None:
     conn.commit()
     conn.close()
     print(f"[data_loader] Inserted {total_kills} kill events from {matches_processed} match(es).")
+
+
+def compute_spawn_centroids(db_path: str = DB_PATH) -> dict:
+    """
+    Computes spawn centroid locations by clustering first kills per map/side/agent.
+    Uses the first kill position for each agent on each side of each map.
+    
+    Returns
+    -------
+    dict
+        Structure: {map_name -> {side -> {agent -> {"x": float, "y": float}}}}
+    """
+    conn = sqlite3.connect(db_path)
+    conn.row_factory = sqlite3.Row
+    cur = conn.cursor()
+    
+    centroids = {}
+    
+    query = """
+        SELECT m.map, r.side, k.killer_agent, k.killer_location_x, k.killer_location_y
+        FROM kills k
+        JOIN rounds r ON k.round_id = r.round_id
+        JOIN matches m ON k.match_id = m.match_id
+        WHERE k.killer_location_x IS NOT NULL AND k.killer_location_y IS NOT NULL
+        ORDER BY m.map, r.side, k.killer_agent, k.timestamp_ms
+    """
+    
+    for row in cur.execute(query):
+        map_name = row["map"]
+        side = row["side"]
+        agent = row["killer_agent"]
+        x = row["killer_location_x"]
+        y = row["killer_location_y"]
+        
+        # Initialize dict structure if needed
+        if map_name not in centroids:
+            centroids[map_name] = {}
+        if side not in centroids[map_name]:
+            centroids[map_name][side] = {}
+        
+        # Record first occurrence (earliest kill)
+        if agent not in centroids[map_name][side]:
+            centroids[map_name][side][agent] = {"x": x, "y": y}
+    
+    conn.close()
+    return centroids
+
+
+def generate_player_predictions(db_path: str = DB_PATH) -> None:
+    """
+    Generate predicted player positions for time buckets:
+    - t=0: synthetic position at barrier drop location (attackers/defenders)
+    - t=15s: decay-weighted interpolation from barrier position to first kill
+    - t=30s+: actual kills from the match
+    
+    Uses exponential decay anchoring to keep defenders anchored near site
+    longer and gradually drift them toward first known position.
+    Formula: weight = 1 - exp(-t / decay_constant)
+    """
+    
+    # Agent decay constants (in seconds)
+    # Lower values = faster drift away from barrier/site
+    # Higher values = stronger anchor to site hold position
+    # Structure: agent -> decay_constant_seconds
+    AGENT_DECAY_CONSTANTS = {
+        # Fast-moving, aggressive agents: drift quickly
+        "Jett": 15,
+        "Neon": 15,
+        # Standard attackers: steady progression
+        "Raze": 20,
+        "Breach": 20,
+        "Omen": 20,
+        "Phoenix": 20,
+        "Brimstone": 20,
+        "Astra": 20,
+        "Fade": 20,
+        "Skye": 20,
+        "Iso": 20,
+        "Gekko": 20,
+        "Harbor": 20,
+        "Tejo": 20,
+        "Deadlock": 20,
+        "Vyse": 20,
+        "Clove": 20,
+        "Miks": 20,
+        "Veto": 20,
+        "Yoru": 20,
+        "KAYO": 20,
+        "Reyna": 20,
+        # Defensive/anchoring agents: longer site hold
+        "Cypher": 45,
+        "Killjoy": 45,
+        "Sage": 35,
+        "Viper": 35,
+        "Chamber": 35,
+        "Sentinel": 35,
+        "Waylay": 45,
+    }
+    # Side base constants (used if agent not in lookup)
+    SIDE_DECAY_CONSTANTS = {
+        "attack": 20,
+        "defense": 35,
+    }
+    
+    # TODO: Get barrier/spawn coordinates from partner and fill in the following dict:
+    # At round start, barriers drop and players spawn at these coordinates
+    # Format: map_name -> side -> {"x": float, "y": float}
+    BARRIER_COORDINATES = {
+        "Bind": {
+            "attack": {"x": 0, "y": 0},   # TODO: Get from partner
+            "defense": {"x": 0, "y": 0},  # TODO: Get from partner
+        },
+        "Split": {
+            "attack": {"x": 0, "y": 0},   # TODO: Get from partner
+            "defense": {"x": 0, "y": 0},  # TODO: Get from partner
+        },
+        "Breeze": {
+            "attack": {"x": 0, "y": 0},   # TODO: Get from partner
+            "defense": {"x": 0, "y": 0},  # TODO: Get from partner
+        },
+        "Fracture": {
+            "attack": {"x": 0, "y": 0},   # TODO: Get from partner
+            "defense": {"x": 0, "y": 0},  # TODO: Get from partner
+        },
+        "Pearl": {
+            "attack": {"x": 0, "y": 0},   # TODO: Get from partner
+            "defense": {"x": 0, "y": 0},  # TODO: Get from partner
+        },
+    }
+    
+    conn = sqlite3.connect(db_path)
+    conn.row_factory = sqlite3.Row
+    cur = conn.cursor()
+    
+    # Create predictions table if not exists
+    cur.execute("""
+        CREATE TABLE IF NOT EXISTS player_predictions (
+            prediction_id TEXT PRIMARY KEY,
+            match_id TEXT,
+            round_id TEXT,
+            round_num INTEGER,
+            player_name TEXT,
+            agent TEXT,
+            team TEXT,
+            time_bucket TEXT,
+            predicted_x REAL,
+            predicted_y REAL,
+            confidence REAL
+        )
+    """)
+    conn.commit()
+    
+    # Clear existing predictions
+    cur.execute("DELETE FROM player_predictions")
+    conn.commit()
+    
+    # Compute spawn centroids once (fallback if barrier coords unavailable)
+    centroids = compute_spawn_centroids(db_path)
+    
+    prediction_id_counter = 0
+    predictions = []
+    
+    # Get all rounds with match data
+    query = """
+        SELECT m.match_id, m.map, r.round_id, r.round_num, r.side
+        FROM rounds r
+        JOIN matches m ON m.match_id = r.match_id
+        ORDER BY m.match_id, r.round_num
+    """
+    
+    for round_row in conn.execute(query):
+        match_id = round_row["match_id"]
+        map_name = round_row["map"]
+        round_id = round_row["round_id"]
+        round_num = round_row["round_num"]
+        side = round_row["side"]
+        
+        # Get all players in this round
+        players_query = """
+            SELECT DISTINCT pl.player_name, pl.team, k.killer_agent as agent
+            FROM player_locations pl
+            JOIN kills k ON pl.kill_id = k.kill_id
+            WHERE k.round_id = ?
+        """
+        
+        players = {}
+        for p_row in conn.execute(players_query, (round_id,)):
+            pname = p_row["player_name"]
+            team = p_row["team"]
+            agent = p_row["agent"] or "Unknown"
+            players[pname] = {"team": team, "agent": agent}
+        
+        # Get kill timeline for this round
+        kills_query = """
+            SELECT k.kill_id, k.timestamp_ms, k.killer, k.killer_location_x, k.killer_location_y
+            FROM kills k
+            WHERE k.round_id = ?
+            ORDER BY k.timestamp_ms
+        """
+        
+        kill_positions = {}  # (timestamp_ms, player_name) -> (x, y)
+        for k_row in conn.execute(kills_query, (round_id,)):
+            ts_ms = int(k_row["timestamp_ms"] or 0)
+            pname = k_row["killer"]
+            if k_row["killer_location_x"] is not None and k_row["killer_location_y"] is not None:
+                kill_positions[(ts_ms, pname)] = (k_row["killer_location_x"], k_row["killer_location_y"])
+        
+        # Generate predictions for each player
+        for pname, p_info in players.items():
+            agent = p_info["agent"]
+            team = p_info["team"]
+            
+            # Get t=0 barrier position for this side
+            barrier_pos = BARRIER_COORDINATES.get(map_name, {}).get(side)
+            if not barrier_pos or (barrier_pos["x"] == 0 and barrier_pos["y"] == 0):
+                # Fallback: use spawn centroid if barrier coords not available
+                barrier_pos = None
+                if map_name in centroids and side in centroids[map_name]:
+                    barrier_pos = centroids[map_name][side].get(agent)
+                if not barrier_pos:
+                    barrier_pos = {"x": 0, "y": 0}
+            
+            # Find first kill time where this player appears
+            first_kill_time = None
+            first_kill_pos = None
+            for (ts_ms, pname_k), pos in sorted(kill_positions.items()):
+                if pname_k == pname:
+                    first_kill_time = ts_ms
+                    first_kill_pos = pos
+                    break
+            
+            # Generate t=0 prediction (barrier drop position)
+            pred_id = f"pred_{prediction_id_counter:06d}"
+            prediction_id_counter += 1
+            predictions.append((
+                pred_id, match_id, round_id, round_num, pname, agent, team,
+                "0-15", barrier_pos["x"], barrier_pos["y"], 0.95
+            ))
+            
+            # Generate t=15s prediction (decay-weighted interpolation barrier -> first kill)
+            if first_kill_time and first_kill_pos:
+                if first_kill_time < 15000:  # First kill was before 15s
+                    # Decay-weighted interpolation to 15s
+                    # Determine decay constant: agent-aware with side fallback
+                    decay_constant = AGENT_DECAY_CONSTANTS.get(agent)
+                    if decay_constant is None:
+                        # Fallback: use side-based decay
+                        decay_constant = SIDE_DECAY_CONSTANTS.get(side, 35)
+                    
+                    # Apply decay formula: weight = 1 - exp(-t / decay_constant)
+                    # This creates smooth exponential interpolation from barrier to first kill
+                    # At t=15s, with decay_constant=35: weight ≈ 0.348 (mostly barrier-anchored)
+                    # At t=15s, with decay_constant=15: weight ≈ 0.632 (faster drift)
+                    t_seconds = 15.0  # Time bucket position
+                    weight = 1.0 - math.exp(-t_seconds / decay_constant)
+                    interp_x = barrier_pos["x"] + (first_kill_pos[0] - barrier_pos["x"]) * weight
+                    interp_y = barrier_pos["y"] + (first_kill_pos[1] - barrier_pos["y"]) * weight
+                    confidence = 0.7
+                else:
+                    # First kill is after 15s, use barrier position
+                    interp_x, interp_y = barrier_pos["x"], barrier_pos["y"]
+                    confidence = 0.8
+            else:
+                # No kill data, use barrier position
+                interp_x, interp_y = barrier_pos["x"], barrier_pos["y"]
+                confidence = 0.6
+            
+            pred_id = f"pred_{prediction_id_counter:06d}"
+            prediction_id_counter += 1
+            predictions.append((
+                pred_id, match_id, round_id, round_num, pname, agent, team,
+                "15-30", interp_x, interp_y, confidence
+            ))
+            
+            # Generate predictions for 30s+ using actual kills
+            for (ts_ms, pname_k), pos in sorted(kill_positions.items()):
+                if pname_k != pname:
+                    continue
+                
+                # Determine time bucket (30s+)
+                if ts_ms < 30000:
+                    continue
+                
+                bucket_start = (ts_ms // 15000) * 15000
+                bucket_end = bucket_start + 15000
+                time_bucket = f"{bucket_start//1000}-{bucket_end//1000}"
+                
+                pred_id = f"pred_{prediction_id_counter:06d}"
+                prediction_id_counter += 1
+                predictions.append((
+                    pred_id, match_id, round_id, round_num, pname, agent, team,
+                    time_bucket, pos[0], pos[1], 1.0
+                ))
+    
+    # Insert all predictions
+    cur.executemany("""
+        INSERT OR IGNORE INTO player_predictions 
+        (prediction_id, match_id, round_id, round_num, player_name, agent, team, time_bucket, predicted_x, predicted_y, confidence)
+        VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+    """, predictions)
+    
+    conn.commit()
+    conn.close()
+    print(f"[data_loader] Generated {len(predictions)} player position predictions.")
 
 
 # ── Loaders ───────────────────────────────────────────────────────────────────
