@@ -44,6 +44,8 @@ input[type=range]{accent-color:#3b82f6;width:70px}
 <div class="toolbar">
   <span class="lbl">Map</span>
   <select id="mapSel"></select>
+  <span class="lbl">Match</span>
+  <select id="matchSel"></select>
   <span class="lbl">Round</span>
   <select id="roundSel"></select>
   <span class="lbl">Kill</span>
@@ -102,7 +104,10 @@ async function loadRawFromDatabase() {
   RAW = await res.json();
   MAPS = Object.keys(RAW);
   if (!MAPS.length) throw new Error('Database returned no supported map data.');
-  if (!RAW[currentMap]) currentMap = MAPS[0];
+  if (!currentMap || !RAW[currentMap]) currentMap = MAPS[0];
+
+  const matchIds = Object.keys(RAW[currentMap].matches || {});
+  currentMatch = matchIds.length ? matchIds[0] : null;
 }
 
 const ZONE_COLORS = ['#6366f1','#10b981','#f59e0b','#ec4899','#8b5cf6','#14b8a6','#f97316','#06b6d4','#84cc16','#e11d48'];
@@ -127,7 +132,8 @@ const MAP_CALIBRATION = {
   Pearl:    { rotation: 90,  offsetX: 0.4, offsetY: 0.38, scaleX: 0.95, scaleY: 1 },
 };
 
-let currentMap = MAPS[0];
+let currentMap = null;
+let currentMatch = null;
 let currentRound = null;
 let currentKillIdx = null;
 let mode = 'view';
@@ -195,11 +201,29 @@ const tip = document.getElementById('tip');
 const imgStatus = document.getElementById('imgStatus');
 
 function abbr(a) { return AGENT_ABBR[a] || a.slice(0,2).toUpperCase(); }
-function getMapData() { return RAW[currentMap]; }
-function getRounds() { return Object.keys(getMapData().rounds).map(Number).sort((a,b)=>a-b); }
+function getMapData() {
+  return RAW[currentMap] || { matches: {} };
+}
+
+function getMatches() {
+  return Object.keys(getMapData().matches || {}).sort();
+}
+
+function getMatchData() {
+  if (!currentMatch) return null;
+  return getMapData().matches[currentMatch] || null;
+}
+
+function getRounds() {
+  const matchData = getMatchData();
+  if (!matchData) return [];
+  return Object.keys(matchData.rounds || {}).map(Number).sort((a, b) => a - b);
+}
+
 function getKills() {
-  if (currentRound === null) return [];
-  return getMapData().rounds[String(currentRound)] || [];
+  const matchData = getMatchData();
+  if (!matchData || currentRound === null) return [];
+  return matchData.rounds[String(currentRound)] || [];
 }
 
 function getCalibration() {
@@ -609,13 +633,37 @@ function updateKillDetail() {
   el.innerHTML = `<b style="color:#e2e8f0">${k.k}</b> <span style="color:#475569">→</span> <b style="color:#e2e8f0">${k.v}</b><br><span style="color:#64748b">Weapon:</span> ${k.w||'?'}<br><span style="color:#64748b">Site:</span> ${k.s||'?'}<br><span style="color:#64748b">Time:</span> ${(k.ms/1000).toFixed(1)}s<br><span style="color:#64748b">Players on screen:</span> ${k.p.length}`;
 }
 
+function populateMatches() {
+  matchSel.innerHTML = '';
+  const matchIds = getMatches();
+
+  matchIds.forEach(matchId => {
+    const o = document.createElement('option');
+    o.value = matchId;
+    o.textContent = matchId;   // ← no date at all
+    matchSel.appendChild(o);
+  });
+
+  currentMatch = matchIds.length ? matchIds[0] : null;
+  if (currentMatch) matchSel.value = currentMatch;
+
+  populateRounds();
+}
+
 function populateRounds() {
   roundSel.innerHTML = '';
-  getRounds().forEach(r => {
-    const o = document.createElement('option'); o.value = r;
-    o.textContent = `Round ${r}`; roundSel.appendChild(o);
+  const rounds = getRounds();
+
+  rounds.forEach(r => {
+    const o = document.createElement('option');
+    o.value = r;
+    o.textContent = `Round ${r}`;
+    roundSel.appendChild(o);
   });
-  currentRound = getRounds()[0];
+
+  currentRound = rounds.length ? rounds[0] : null;
+  if (currentRound !== null) roundSel.value = currentRound;
+
   populateKills();
 }
 
@@ -654,6 +702,7 @@ function doExport() {
 
 // Controls
 const mapSel = document.getElementById('mapSel');
+const matchSel = document.getElementById('matchSel');
 const roundSel = document.getElementById('roundSel');
 const killSel = document.getElementById('killSel');
 
@@ -665,18 +714,41 @@ function populateMapOptions() {
     o.textContent = m;
     mapSel.appendChild(o);
   });
-  mapSel.value = currentMap;
+  if (currentMap) mapSel.value = currentMap;
 }
 
 mapSel.onchange = () => {
-  currentMap = mapSel.value; currentRound = null; currentKillIdx = null;
-  polyPoints = []; polyMouse = null;
-  imageCache = {};  // allow reload
+  currentMap = mapSel.value;
+  currentMatch = null;
+  currentRound = null;
+  currentKillIdx = null;
+  polyPoints = [];
+  polyMouse = null;
+  imageCache = {};
   loadMapImage(currentMap);
-  populateRounds(); updateZonePanel();
+  populateMatches();
+  updateZonePanel();
 };
-roundSel.onchange = () => { currentRound = Number(roundSel.value); currentKillIdx = null; populateKills(); };
-killSel.onchange = () => { currentKillIdx = killSel.value === '' ? null : Number(killSel.value); updateKillList(); updateKillDetail(); drawPlayers(); };
+
+matchSel.onchange = () => {
+  currentMatch = matchSel.value;
+  currentRound = null;
+  currentKillIdx = null;
+  populateRounds();
+};
+
+roundSel.onchange = () => {
+  currentRound = Number(roundSel.value);
+  currentKillIdx = null;
+  populateKills();
+};
+
+killSel.onchange = () => {
+  currentKillIdx = killSel.value === '' ? null : Number(killSel.value);
+  updateKillList();
+  updateKillDetail();
+  drawPlayers();
+};
 
 document.getElementById('btnView').onclick = () => { mode='view'; setMode(); };
 document.getElementById('btnZone').onclick = () => { mode='zone'; setMode(); };
@@ -777,13 +849,15 @@ async function initializeApp() {
     await loadRawFromDatabase();
     populateMapOptions();
     loadMapImage(currentMap);
-    populateRounds();
+    populateMatches();
     updateZonePanel();
     resize();
   } catch (err) {
     console.error(err);
-    document.getElementById('kill-detail').innerHTML = `<span style="color:#f87171">${err.message}</span>`;
-    document.getElementById('kill-list').innerHTML = '<div style="font-size:11px;color:#f87171">Could not load data from valorant.db</div>';
+    document.getElementById('kill-detail').innerHTML =
+      `<span style="color:#f87171">${err.message}</span>`;
+    document.getElementById('kill-list').innerHTML =
+      '<div style="font-size:11px;color:#f87171">Could not load data from valorant.db</div>';
   }
 }
 

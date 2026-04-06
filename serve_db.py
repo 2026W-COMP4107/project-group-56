@@ -90,14 +90,11 @@ def load_raw_from_db(db_path: Path = DB_PATH) -> dict:
         has_players_table = bool(player_cols)
 
         kill_cols = get_table_columns(conn, "kills")
-        kill_team_col = "killer_team" if "killer_team" in kill_cols else None
         site_col = "site" if "site" in kill_cols else None
 
-        # New schema stores agent data in players, not player_locations.
-        # Keep a fallback to player_locations.agent for compatibility with older DBs.
         if has_players_table and {"puuid", "match_id", "agent"}.issubset(player_cols):
             player_join = "LEFT JOIN players p ON p.puuid = pl.puuid AND p.match_id = k.match_id"
-            agent_expr = "COALESCE(p.agent, pl.agent, '')" if "agent" in pl_cols else "COALESCE(p.agent, '')"
+            agent_expr = "COALESCE(p.agent, '')"
             team_expr = "COALESCE(pl.team, p.team_id, '')" if "team" in pl_cols else "COALESCE(p.team_id, '')"
             name_expr = "COALESCE(pl.player_name, p.name)"
         else:
@@ -107,20 +104,19 @@ def load_raw_from_db(db_path: Path = DB_PATH) -> dict:
             name_expr = "pl.player_name" if "player_name" in pl_cols else "NULL"
 
         site_expr = f"COALESCE(k.{site_col}, '')" if site_col else "''"
-        kill_team_expr = f"COALESCE(k.{kill_team_col}, '')" if kill_team_col else "''"
 
         kills_sql = f"""
             SELECT
                 k.kill_id,
                 k.match_id,
                 m.map AS map_name,
+                m.date AS match_date,
                 r.round_num,
                 k.killer,
                 k.victim,
                 k.weapon,
                 {site_expr} AS site,
                 COALESCE(k.timestamp_ms, CAST(k.timestamp_sec * 1000 AS INTEGER), 0) AS timestamp_ms,
-                {kill_team_expr} AS killer_team,
                 {name_expr} AS player_name,
                 {agent_expr} AS agent,
                 {team_expr} AS team,
@@ -135,24 +131,30 @@ def load_raw_from_db(db_path: Path = DB_PATH) -> dict:
             ORDER BY m.map, k.match_id, r.round_num, timestamp_ms, k.kill_id, player_name
         """
 
-        raw: dict[str, dict] = {}
-        kill_lookup: dict[tuple[str, str, int, str], dict] = {}
+        raw = {}
+        kill_lookup = {}
 
         for row in conn.execute(kills_sql, SUPPORTED_MAPS):
             map_name = row["map_name"]
-            scalars = MAP_SCALARS.get(map_name)
-            if scalars is None:
-                continue  # no conversion factors for this map, skip
-
+            match_id = row["match_id"]
             round_num = str(row["round_num"])
-            # coords are now pre-normalized; no bounds needed
-            raw.setdefault(map_name, {"rounds": {}})
-            raw[map_name]["rounds"].setdefault(round_num, [])
+            scalars = MAP_SCALARS.get(map_name)
 
-            key = (map_name, row["match_id"], row["round_num"], row["kill_id"])
+            if scalars is None:
+                continue
+
+            raw.setdefault(map_name, {"matches": {}})
+            raw[map_name]["matches"].setdefault(match_id, {
+                "rounds": {}
+            })
+            raw[map_name]["matches"][match_id]["rounds"].setdefault(round_num, [])
+
+            round_kills = raw[map_name]["matches"][match_id]["rounds"][round_num]
+
+            key = (map_name, match_id, row["round_num"], row["kill_id"])
             kill_obj = kill_lookup.get(key)
+
             if kill_obj is None:
-                round_kills = raw[map_name]["rounds"][round_num]
                 kill_obj = {
                     "i": len(round_kills),
                     "k": row["killer"],
@@ -160,27 +162,37 @@ def load_raw_from_db(db_path: Path = DB_PATH) -> dict:
                     "ms": int(row["timestamp_ms"] or 0),
                     "s": row["site"] or "",
                     "w": row["weapon"],
-                    "kt": row["killer_team"] or "",
                     "p": [],
                 }
                 round_kills.append(kill_obj)
                 kill_lookup[key] = kill_obj
 
-            if (row["player_name"] is not None
-                    and row["location_x"] is not None
-                    and row["location_y"] is not None):
+            if (
+                row["player_name"] is not None
+                and row["location_x"] is not None
+                and row["location_y"] is not None
+            ):
                 nx, ny = normalize_coord(row["location_x"], row["location_y"], scalars)
-                kill_obj["p"].append(
-                    {
-                        "n": row["player_name"],
-                        "a": row["agent"] or "Unknown",
-                        "t": row["team"] or "",
-                        "x": nx,   # normalized [0, 1]
-                        "y": ny,   # normalized [0, 1]
-                    }
-                )
+                kill_obj["p"].append({
+                    "n": row["player_name"],
+                    "a": row["agent"] or "Unknown",
+                    "t": row["team"] or "",
+                    "x": nx,
+                    "y": ny,
+                })
 
-        raw = {k: v for k, v in raw.items() if v["rounds"]}
+        raw = {
+            map_name: {
+                "matches": {
+                    match_id: match_data
+                    for match_id, match_data in map_data["matches"].items()
+                    if match_data["rounds"]
+                }
+            }
+            for map_name, map_data in raw.items()
+            if map_data["matches"]
+        }
+
         if not raw:
             raise RuntimeError("No kill/location data was found in valorant.db")
 

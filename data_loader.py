@@ -403,6 +403,7 @@ def _insert_matches_to_db(matches_data, db_path: str = DB_PATH) -> None:
         if not isinstance(match, dict):
             continue
             
+        match_kill_counter = 0
         # Extract match-level data
         metadata = match.get('metadata', {})
         match_id = metadata.get('match_id', f"api_match_{kill_counter}")
@@ -526,7 +527,7 @@ def _insert_matches_to_db(matches_data, db_path: str = DB_PATH) -> None:
             is_first_blood = 1 if kill.get('is_elimination_first_blood', False) else 0
             
             # Insert kill with all new fields
-            kill_id = f"kill_{kill_counter:06d}"
+            kill_id = f"{match_id}_kill_{match_kill_counter:06d}"
             cur.execute(
                 "INSERT OR IGNORE INTO kills VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)",
                 (kill_id, round_id, round_num, match_id, killer, victim, killer_puuid, victim_puuid,
@@ -549,15 +550,15 @@ def _insert_matches_to_db(matches_data, db_path: str = DB_PATH) -> None:
                 loc_y = location.get('y')
                 view_radians = player_loc.get('view_radians')
                 
-                location_id = f"loc_{kill_counter:06d}_{idx:02d}"
+                location_id = f"{kill_id}_loc_{idx:02d}"
                 cur.execute(
                     "INSERT OR IGNORE INTO player_locations VALUES (?,?,?,?,?,?,?,?,?,?,?,?)",
                     (location_id, kill_id, match_id, round_id, round_num, timestamp_ms, 
                      player_puuid, player_name, player_team, loc_x, loc_y, view_radians)
                 )
             
-            kill_counter += 1
             total_kills += 1
+            match_kill_counter += 1
         
         # Insert rounds with all fields
         for round_id, round_info in rounds_dict.items():

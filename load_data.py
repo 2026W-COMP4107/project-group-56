@@ -38,7 +38,8 @@ if __name__ == "__main__":
     
     # Generate position predictions
     print("\n=== Generating Position Predictions ===")
-    generate_player_predictions()
+    # # # generate_player_predictions()
+    # AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA
     
     # Load and display all kill events
     print("\n=== Loading all kill events ===")
