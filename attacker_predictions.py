@@ -47,7 +47,6 @@ MAP_ATTACKER_STARTS: dict[str, list[tuple[float, float]]] = {
     "Split": [
         (-1316, -3232), # b lobby
         (1213, -2598),  # b link
-        (2954, -2960),  # sewers
         (7284, -3428),  # a lobby
     ],
 }

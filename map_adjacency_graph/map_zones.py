@@ -427,9 +427,9 @@ def label_site(zone_name: str) -> Optional[str]:
 # ── Quick sanity check ─────────────────────────────────────────────────────────
 
 if __name__ == "__main__":
-    # Test zone lookup with a known kill location from your data
+    # Test zone lookup with a known kill location from data
     test_cases = [
-        (6277, -8492, "Bind"),    # from your sample JSON
+        (6277, -8492, "Bind"),
         (-3193, -7266, "Bind"),
         (1953, -5847,  "Bind"),
     ]

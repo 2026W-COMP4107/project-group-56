@@ -2,6 +2,7 @@
 Example script showing how to load Valorant match data and query it.
 """
 
+from pathlib import Path
 import sqlite3
 
 from data_loader import (
@@ -41,6 +42,7 @@ if __name__ == "__main__":
     print("  [2] Interactively select a file")
     print("  [3] Delete loaded JSON data from DB tables")
     print("  [4] Load 1 games from each map (Bind, Haven, Split) - 5 total")
+    print("  [5] Load all Split map files (for testing)")
     print("  [q] Quit")
 
     choice = input("Select option (1, 2, 3, or q): ").strip().lower()
@@ -71,6 +73,11 @@ if __name__ == "__main__":
             "json/Breeze/0aee7eec-87b8-44dc-9923-c3e5c40d4b2d.json"
         ]
         for path in bind_files + pearl_files + split_files + fracture_files + breeze_files:
+            load_from_json_file(path)
+    elif choice == '5':
+        # Load all split files 
+        split_files = list(Path('json/Split').glob('*.json'))
+        for path in split_files:
             load_from_json_file(path)
     else:
         print("Invalid choice. Defaulting to 1 Bind file.")
