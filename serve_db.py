@@ -67,6 +67,81 @@ def normalize_coord(x: float, y: float, scalars: dict) -> tuple[float, float]:
     return nx, ny
 
 
+def load_player_predictions(db_path: Path = DB_PATH) -> dict:
+    """
+    Load player position predictions for time buckets 0-15 and 15-30 seconds.
+    Returns predictions organized by map, match, round, and time bucket.
+    Gets the actual agent from the players table using match_id and player_name.
+    """
+    if not db_path.exists():
+        raise FileNotFoundError(f"Database not found: {db_path}")
+
+    conn = sqlite3.connect(db_path)
+    conn.row_factory = sqlite3.Row
+    try:
+        # Query player predictions for 0-15 and 15-30 time buckets
+        # Join with players table to get the actual agent the player was using
+        query = """
+            SELECT
+                pp.match_id,
+                m.map,
+                pp.round_num,
+                pp.player_name,
+                COALESCE(p.agent, 'Unknown') AS agent,
+                pp.team,
+                pp.time_bucket,
+                pp.predicted_x,
+                pp.predicted_y,
+                pp.confidence
+            FROM player_predictions pp
+            JOIN matches m ON pp.match_id = m.match_id
+            LEFT JOIN players p ON p.match_id = pp.match_id AND p.name = pp.player_name
+            WHERE m.map IN ({})
+            AND pp.time_bucket IN ('0-15', '15-30')
+            ORDER BY m.map, pp.match_id, pp.round_num, pp.time_bucket, pp.player_name
+        """.format(','.join('?' for _ in SUPPORTED_MAPS))
+
+        predictions = {}
+        
+        for row in conn.execute(query, SUPPORTED_MAPS):
+            map_name = row["map"]
+            match_id = row["match_id"]
+            round_num = str(row["round_num"])
+            time_bucket = row["time_bucket"]
+            
+            scalars = MAP_SCALARS.get(map_name)
+            if scalars is None:
+                continue
+
+            # Prediction coordinates are stored in raw in-game space in the DB,
+            # so normalize them here before returning them to the viewer.
+            nx, ny = normalize_coord(row["predicted_x"], row["predicted_y"], scalars)
+
+            # Build nested structure
+            if map_name not in predictions:
+                predictions[map_name] = {"matches": {}}
+            if match_id not in predictions[map_name]["matches"]:
+                predictions[map_name]["matches"][match_id] = {"rounds": {}}
+            if round_num not in predictions[map_name]["matches"][match_id]["rounds"]:
+                predictions[map_name]["matches"][match_id]["rounds"][round_num] = {"buckets": {}}
+            if time_bucket not in predictions[map_name]["matches"][match_id]["rounds"][round_num]["buckets"]:
+                predictions[map_name]["matches"][match_id]["rounds"][round_num]["buckets"][time_bucket] = []
+            
+            # Add player prediction with actual agent from players table
+            predictions[map_name]["matches"][match_id]["rounds"][round_num]["buckets"][time_bucket].append({
+                "player": row["player_name"],
+                "agent": row["agent"],
+                "team": row["team"],
+                "x": nx,
+                "y": ny,
+                "confidence": row["confidence"]
+            })
+        
+        return predictions
+    finally:
+        conn.close()
+
+
 def load_raw_from_db(db_path: Path = DB_PATH) -> dict:
     if not db_path.exists():
         raise FileNotFoundError(f"Database not found: {db_path}")
@@ -250,6 +325,53 @@ class Handler(http.server.SimpleHTTPRequestHandler):
                 self.send_header("Content-Length", str(len(body)))
                 self.end_headers()
                 self.wfile.write(body)
+            return
+        elif parsed.path == "/api/predictions":
+            try:
+                payload = load_player_predictions()
+                body = json.dumps(payload).encode("utf-8")
+                self.send_response(200)
+                self.send_header("Content-Type", "application/json; charset=utf-8")
+                self.send_header("Content-Length", str(len(body)))
+                self.end_headers()
+                self.wfile.write(body)
+            except Exception as exc:
+                body = json.dumps({"error": str(exc)}).encode("utf-8")
+                self.send_response(500)
+                self.send_header("Content-Type", "application/json; charset=utf-8")
+                self.send_header("Content-Length", str(len(body)))
+                self.end_headers()
+                self.wfile.write(body)
+            return
+        elif parsed.path == "/api/debug-coords":
+            # Debug endpoint showing 5 specific prediction coordinates
+            payload = {
+                "Bind": {
+                    "matches": {
+                        "debug-match": {
+                            "rounds": {
+                                "0": {
+                                    "buckets": {
+                                        "0-15": [
+                                            {"player": "ookiemaru", "agent": "Neon", "team": "Blue",        "x": 0.7688, "y": 0.7688,"confidence": 0.95},
+                                            {"player": "clover", "agent": "Sage", "team": "Blue",           "x": 1.2688, "y": 1.2688,"confidence": 0.95},
+                                            {"player": "Water", "agent": "Brimstone", "team": "Blue",       "x": 1.3688, "y": 1.3688, "confidence": 0.95},
+                                            {"player": "MasterMike", "agent": "Phoenix", "team": "Blue",    "x": 1.4688, "y": 1.4688, "confidence": 0.95},
+                                            {"player": "clover2", "agent": "Skye", "team": "Blue",          "x": 1.5688, "y": 1.5688, "confidence": 0.95},
+                                        ]
+                                    }
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+            body = json.dumps(payload).encode("utf-8")
+            self.send_response(200)
+            self.send_header("Content-Type", "application/json; charset=utf-8")
+            self.send_header("Content-Length", str(len(body)))
+            self.end_headers()
+            self.wfile.write(body)
             return
         return super().do_GET()
 

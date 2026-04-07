@@ -1,8 +1,8 @@
 """
-load_data.py
------------
 Example script showing how to load Valorant match data and query it.
 """
+
+import sqlite3
 
 from data_loader import (
     load_from_json_file,
@@ -15,16 +15,35 @@ from data_loader import (
     DB_PATH
 )
 
+
+def clear_loaded_json_data():
+    conn = sqlite3.connect(DB_PATH)
+    cur = conn.cursor()
+    for table in [
+        "player_predictions",
+        "player_locations",
+        "kills",
+        "rounds",
+        "players",
+        "matches",
+    ]:
+        cur.execute(f"DELETE FROM {table}")
+    conn.commit()
+    conn.close()
+    print("Cleared loaded JSON data from matches, players, rounds, kills, player_locations, and player_predictions.")
+
+
 if __name__ == "__main__":
     # Load from your JSON file
     print("\n=== Loading Valorant Match Data ===")
     print("Options:")
-    print("  [1] Load all JSON files from json/ folder")
+    print("  [1] Load all JSON files")
     print("  [2] Interactively select a file")
+    print("  [3] Delete loaded JSON data from DB tables")
     print("  [q] Quit")
-    
-    choice = input("Select option (1, 2, or q): ").strip().lower()
-    
+
+    choice = input("Select option (1, 2, 3, or q): ").strip().lower()
+
     if choice == 'q':
         print("Cancelled.")
         exit(0)
@@ -32,15 +51,22 @@ if __name__ == "__main__":
         load_all_json_files("json")
     elif choice == '2':
         prompt_for_file_selection("json")
+    elif choice == '3':
+        clear_loaded_json_data()
     else:
-        print("Invalid choice. Defaulting to load all files.")
-        load_all_json_files("json")
-    
+        print("Invalid choice. Defaulting to 1 Bind file.")
+        bind_files = [
+            "json/Bind/0c442f72-11ba-4929-a111-d24b14424fee.json"
+        ]
+        # load_all_json_files("json")
+        for path in bind_files:
+            load_from_json_file(path)
+
     # Generate position predictions
     print("\n=== Generating Position Predictions ===")
     # # # generate_player_predictions()
     # AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA
-    
+
     # Load and display all kill events
     print("\n=== Loading all kill events ===")
     df_kills = load_kills()
@@ -49,7 +75,7 @@ if __name__ == "__main__":
         print(df_kills.head(10))
     else:
         print("No kill events found in database.")
-    
+
     # Example: Query a specific kill's location data
     print("\n=== Kill Location Details ===")
     kill_loc = load_kill_locations('kill_000003')
@@ -57,7 +83,7 @@ if __name__ == "__main__":
         print(f"Killer: {kill_loc['killer']['name']} at ({kill_loc['killer']['location_x']}, {kill_loc['killer']['location_y']})")
         print(f"Victim: {kill_loc['victim']['name']}")
         print(f"All player positions: {len(kill_loc['all_players'])} recorded")
-    
+
     # Example: Query round positioning data using first available round
     print("\n=== Round Positioning Data ===")
     if not df_kills.empty:

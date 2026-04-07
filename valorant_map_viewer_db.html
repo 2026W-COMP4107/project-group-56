@@ -17,8 +17,6 @@ button.active{background:#3b82f6;border-color:#3b82f6;color:#fff;font-weight:500
 canvas{position:absolute;top:0;left:0}
 #img-canvas{image-rendering:pixelated}
 #player-canvas{cursor:crosshair}
-#zone-canvas{pointer-events:none}
-#zone-canvas.drawing{pointer-events:all;cursor:crosshair}
 .sidebar{width:230px;background:#1e293b;border-left:1px solid #334155;overflow-y:auto;padding:10px;display:flex;flex-direction:column;gap:8px;flex-shrink:0}
 .card{background:#0f172a;border:1px solid #334155;border-radius:8px;padding:10px;font-size:12px}
 .card h3{font-size:10px;font-weight:600;color:#64748b;margin-bottom:8px;text-transform:uppercase;letter-spacing:.8px}
@@ -26,15 +24,9 @@ canvas{position:absolute;top:0;left:0}
 .kill-item:hover{background:#1e293b;color:#e2e8f0}
 .kill-item.sel{background:#1d3a5f;color:#60a5fa;font-weight:500}
 .kill-item:last-child{border-bottom:none}
-.zone-item{display:flex;align-items:center;gap:6px;padding:3px 0}
-.zone-badge{width:10px;height:10px;border-radius:2px;flex-shrink:0}
-.zone-name{flex:1;font-size:11px;color:#e2e8f0}
-.zone-del{cursor:pointer;color:#475569;font-size:16px;line-height:1;padding:0 2px}
-.zone-del:hover{color:#ef4444}
 .legend-row{display:flex;align-items:center;gap:6px;margin-bottom:5px;font-size:11px;color:#94a3b8}
 .dot{width:10px;height:10px;border-radius:50%;flex-shrink:0}
 .tip{position:fixed;background:#1e293b;border:1px solid #475569;border-radius:6px;padding:6px 10px;font-size:11px;pointer-events:none;display:none;z-index:999;max-width:180px;color:#e2e8f0;line-height:1.5}
-.sep{color:#475569;font-size:10px}
 .img-status{position:absolute;top:8px;left:8px;background:rgba(0,0,0,.6);padding:4px 8px;border-radius:4px;font-size:10px;color:#f59e0b;pointer-events:none;z-index:10}
 input[type=range]{accent-color:#3b82f6;width:70px}
 </style>
@@ -52,14 +44,19 @@ input[type=range]{accent-color:#3b82f6;width:70px}
   <select id="killSel"></select>
   <div style="width:1px;height:20px;background:#334155;margin:0 4px"></div>
   <button id="btnView" class="active">View</button>
-  <button id="btnZone">Draw zones</button>
   <button id="btnHeat">Heatmap</button>
+  <button id="btnPred">Predictions</button>
+  <button id="btnDebug" style="background:#8b5cf6;border-color:#8b5cf6">Debug coords</button>
   <div style="width:1px;height:20px;background:#334155;margin:0 4px"></div>
   <span class="lbl">Map opacity</span>
   <input type="range" id="mapOpacity" min="0" max="100" value="80" step="1">
-  <span id="opacityVal" style="font-size:11px;color:#94a3b8;min-width:28px">80%</span>
+  <div style="width:1px;height:20px;background:#334155;margin:0 4px"></div>
+  <span class="lbl">Prediction time</span>
+  <select id="predictionTimeBucket">
+    <option value="0-15">0-15s</option>
+    <option value="15-30">15-30s</option>
+  </select>
   <div style="flex:1"></div>
-  <button id="exportZones">Export zones JSON ↓</button>
 </div>
 
 <div class="main">
@@ -67,7 +64,6 @@ input[type=range]{accent-color:#3b82f6;width:70px}
     <div class="img-status" id="imgStatus" style="display:none">No map image — place Haven.png / Bind.png etc. in map_images/</div>
     <canvas id="img-canvas"></canvas>
     <canvas id="player-canvas"></canvas>
-    <canvas id="zone-canvas"></canvas>
   </div>
   <div class="sidebar">
     <div class="card">
@@ -87,11 +83,6 @@ input[type=range]{accent-color:#3b82f6;width:70px}
       <h3>Kills this round</h3>
       <div id="kill-list"></div>
     </div>
-    <div class="card">
-      <h3>Zones <span class="sep">— draw mode to add</span></h3>
-      <div id="zone-list"><div style="font-size:11px;color:#475569">No zones. Switch to "Draw zones", click to place points, double-click to finish.</div></div>
-      <button id="exportZonesPanel" style="width:100%;margin-top:8px;height:26px;font-size:11px">Export zones JSON ↓</button>
-    </div>
   </div>
 </div>
 <div class="tip" id="tip"></div>
@@ -99,6 +90,8 @@ input[type=range]{accent-color:#3b82f6;width:70px}
 <script>
 let RAW = {};
 let MAPS = [];
+let PREDICTIONS = {};
+let predictionTimeBucket = '0-15';  // default to 0-15 seconds
 
 async function loadRawFromDatabase() {
   const res = await fetch('/api/raw');
@@ -112,7 +105,19 @@ async function loadRawFromDatabase() {
   currentMatch = matchIds.length ? matchIds[0] : null;
 }
 
-const ZONE_COLORS = ['#6366f1','#10b981','#f59e0b','#ec4899','#8b5cf6','#14b8a6','#f97316','#06b6d4','#84cc16','#e11d48'];
+async function loadPredictionsFromDatabase() {
+  try {
+    console.log('Loading predictions from database...');
+    const res = await fetch('/api/predictions');
+    if (!res.ok) throw new Error(`Failed to load predictions: ${res.status}`);
+    PREDICTIONS = await res.json();
+    console.log('Predictions loaded:', PREDICTIONS);
+  } catch (err) {
+    console.error('Error loading predictions:', err);
+    PREDICTIONS = {};
+  }
+}
+
 const AGENT_ABBR = {
   'Astra':'AS','Breach':'BR','Brimstone':'BI','Chamber':'CH','Clove':'CL',
   'Cypher':'CY','Deadlock':'DL','Fade':'FA','Gekko':'GK','Harbor':'HB',
@@ -123,10 +128,6 @@ const AGENT_ABBR = {
 };
 
 const MAP_CALIBRATION = {
-  // offsetX/Y and scaleX/Y are fine-tuning knobs only — adjust if dots are slightly
-  // off due to minimap image padding/cropping. With correct API scalars these should
-  // stay at 0 / 1 for most maps.
-  // rotation: Bind's minimap image is physically rotated 90° vs the coordinate space.
   Bind:     { rotation: 90, offsetX: 0.51, offsetY: 0.55, scaleX: 0.95, scaleY: 1 },
   Split:    { rotation: 0,  offsetX: -0.535, offsetY: 0.565, scaleX: 1, scaleY: 1 },
   Breeze:   { rotation: 90,  offsetX: 0.29, offsetY: 0.29, scaleX: 1, scaleY: 1 },
@@ -134,14 +135,19 @@ const MAP_CALIBRATION = {
   Pearl:    { rotation: 90,  offsetX: 0.4, offsetY: 0.38, scaleX: 0.95, scaleY: 1 },
 };
 
+const MAP_SCALARS = {
+  Bind:     { xMultiplier: 5.9e-05, xScalarToAdd: 0.576941, yMultiplier: -5.9e-05, yScalarToAdd: 0.967566 },
+  Split:    { xMultiplier: 7.8e-05, xScalarToAdd: 0.842188, yMultiplier: -7.8e-05, yScalarToAdd: 0.697578 },
+  Breeze:   { xMultiplier: 7.0e-05, xScalarToAdd: 0.465123, yMultiplier: -7.0e-05, yScalarToAdd: 0.833078 },
+  Fracture: { xMultiplier: 7.8e-05, xScalarToAdd: 0.556952, yMultiplier: -7.8e-05, yScalarToAdd: 1.155886 },
+  Pearl:    { xMultiplier: 7.8e-05, xScalarToAdd: 0.480469, yMultiplier: -7.8e-05, yScalarToAdd: 0.916016 },
+};
+
 let currentMap = null;
 let currentMatch = null;
 let currentRound = null;
 let currentKillIdx = null;
 let mode = 'view';
-let zones = {};
-let polyPoints = [];      // canvas-space points being drawn for the current polygon
-let polyMouse = null;     // current mouse position while drawing
 let mapImage = null;
 let mapOpacity = 0.8;
 let imageCache = {};
@@ -159,7 +165,7 @@ function loadAgentIcon(agentName) {
 
   const safe = agentName
     .trim()
-    .replace(/\//g, '')      // KAY/O -> KAYO
+    .replace(/\//g, '')
     .replace(/[^a-zA-Z0-9_-]/g, '');
 
   const safeLower = safe.toLowerCase();
@@ -198,10 +204,8 @@ function preloadAgentIcons() {
 const wrap = document.getElementById('canvas-wrap');
 const ic = document.getElementById('img-canvas');
 const pc = document.getElementById('player-canvas');
-const zc = document.getElementById('zone-canvas');
 const ictx = ic.getContext('2d');
 const pctx = pc.getContext('2d');
-const zctx = zc.getContext('2d');
 const tip = document.getElementById('tip');
 const imgStatus = document.getElementById('imgStatus');
 
@@ -236,37 +240,36 @@ function getCalibration() {
 }
 
 function applyRotation(nx, ny, rotation) {
-  if (rotation === 90)  return [ny, 1 - nx];      // clockwise
+  if (rotation === 90)  return [ny, 1 - nx];
   if (rotation === 180) return [1 - nx, 1 - ny];
   if (rotation === 270) return [1 - ny, nx];
   return [nx, ny];
 }
 
-function undoRotation(nx, ny, rotation) {
-  if (rotation === 90)  return [1 - ny, nx];      // inverse of 90°
-  if (rotation === 180) return [1 - nx, 1 - ny];
-  if (rotation === 270) return [ny, 1 - nx];
+function normalizePredictionCoordSpace(x, y) {
+  if (x >= 0 && x <= 1 && y >= 0 && y <= 1) return [x, y];
+
+  const scalars = MAP_SCALARS[currentMap];
+  if (!scalars) return [x, y];
+
+  const nx = scalars.xMultiplier * x + scalars.xScalarToAdd;
+  const ny = scalars.yMultiplier * y + scalars.yScalarToAdd;
   return [nx, ny];
 }
 
-function toCanvas(x, y) {
-  // x and y are already normalized [0, 1] via the Valorant API scalars applied server-side.
-  // Formula used in serve_db.py: nx = xMultiplier * ingame_x + xScalarToAdd
+function toCanvas(x, y, coordType = 'raw') {
   const vp = getImageViewport();
   const cal = getCalibration();
 
   let nx = x;
   let ny = y;
 
-  // 🪞 Flip x-axis: Valorant minimap images are horizontally mirrored
-  // relative to the in-game coordinate space produced by the API scalars.
-  //nx = 1 - nx;
+  if (coordType === 'prediction') {
+    [nx, ny] = normalizePredictionCoordSpace(nx, ny);
+  }
+
   ny = 1 - ny;
-
-  // 🔁 Apply rotation (only affects maps configured in MAP_CALIBRATION, e.g. Bind)
   [nx, ny] = applyRotation(nx, ny, cal.rotation);
-
-  // Apply per-map calibration tweak (fine offset/scale corrections)
   nx = nx * cal.scaleX + cal.offsetX;
   ny = ny * cal.scaleY + cal.offsetY;
 
@@ -275,32 +278,6 @@ function toCanvas(x, y) {
     vp.y + ny * vp.h
   ];
 }
-
-function fromCanvas(cx, cy) {
-  // Returns normalized [0, 1] coordinates (not raw in-game coords).
-  const vp = getImageViewport();
-  const cal = getCalibration();
-
-  let nx = (cx - vp.x) / vp.w;
-  let ny = (cy - vp.y) / vp.h;
-
-  // Remove calibration first
-  nx = (nx - cal.offsetX) / cal.scaleX;
-  ny = (ny - cal.offsetY) / cal.scaleY;
-
-  // 🔁 Undo rotation (only applies to maps configured with rotation)
-  [nx, ny] = undoRotation(nx, ny, cal.rotation);
-
-  // 🪞 Undo x-axis flip
-  nx = 1 - nx;
-
-  // Return normalized coords (in-game coords not recoverable here without scalars)
-  return [
-    Math.round(nx * 10000) / 10000,
-    Math.round(ny * 10000) / 10000
-  ];
-}
-
 
 function getFacingUnitVector(player) {
   if (player.r === null || player.r === undefined || Number.isNaN(Number(player.r))) {
@@ -328,20 +305,16 @@ function drawFacingArrow(player, cx, cy, radius, teamColor, isKiller) {
   if (!unit) return;
 
   const [ux, uy] = unit;
-
   const startOffset = radius + 2;
-  const size = isKiller ? 10 : 8;        // overall size of arrow
-  const width = isKiller ? 5 : 4;        // width of ">" shape
+  const size = isKiller ? 10 : 8;
+  const width = isKiller ? 5 : 4;
 
-  // Tip of arrow
   const tipX = cx + ux * (startOffset + size);
   const tipY = cy + uy * (startOffset + size);
 
-  // Perpendicular vector
   const px = -uy;
   const py = ux;
 
-  // Two back points (forming ">")
   const leftX = cx + ux * startOffset + px * width;
   const leftY = cy + uy * startOffset + py * width;
 
@@ -349,8 +322,6 @@ function drawFacingArrow(player, cx, cy, radius, teamColor, isKiller) {
   const rightY = cy + uy * startOffset - py * width;
 
   pctx.save();
-
-  // Outline (black border)
   pctx.beginPath();
   pctx.moveTo(tipX, tipY);
   pctx.lineTo(leftX, leftY);
@@ -359,7 +330,6 @@ function drawFacingArrow(player, cx, cy, radius, teamColor, isKiller) {
   pctx.fillStyle = 'rgba(0,0,0,0.75)';
   pctx.fill();
 
-  // Inner colored arrow
   const shrink = 0.9;
   pctx.beginPath();
   pctx.moveTo(
@@ -377,17 +347,15 @@ function drawFacingArrow(player, cx, cy, radius, teamColor, isKiller) {
   pctx.closePath();
   pctx.fillStyle = teamColor;
   pctx.fill();
-
   pctx.restore();
 }
 
 function resize() {
   const r = wrap.getBoundingClientRect();
-  ic.width = pc.width = zc.width = r.width;
-  ic.height = pc.height = zc.height = r.height;
+  ic.width = pc.width = r.width;
+  ic.height = pc.height = r.height;
   drawMapImage();
   drawPlayers();
-  drawZones();
 }
 
 function loadMapImage(mapName) {
@@ -476,36 +444,31 @@ function drawVictim(vic) {
   const icon = agentIconCache[vic.a];
   const teamColor = vic.t === 'Blue' ? '#3b82f6' : vic.t === 'Red' ? '#ef4444' : '#888';
 
-  // Desaturated shadow
   pctx.beginPath();
   pctx.arc(cx, cy, R + 2, 0, Math.PI * 2);
   pctx.fillStyle = 'rgba(0,0,0,0.55)';
   pctx.fill();
 
   pctx.save();
-  pctx.globalAlpha = 0.55;   // dimmed — victim is dead
+  pctx.globalAlpha = 0.55;
 
   if (icon) {
-    // Dim ring
     pctx.beginPath();
     pctx.arc(cx, cy, R + 1.5, 0, Math.PI * 2);
     pctx.strokeStyle = teamColor;
     pctx.lineWidth = 2;
     pctx.stroke();
 
-    // Background circle
     pctx.beginPath();
     pctx.arc(cx, cy, R, 0, Math.PI * 2);
     pctx.fillStyle = 'rgba(15,23,42,0.6)';
     pctx.fill();
 
-    // Agent icon clipped to circle
     pctx.beginPath();
     pctx.arc(cx, cy, R, 0, Math.PI * 2);
     pctx.clip();
     pctx.drawImage(icon, cx - R, cy - R, R * 2, R * 2);
   } else {
-    // Fallback dot
     pctx.beginPath();
     pctx.arc(cx, cy, R, 0, Math.PI * 2);
     pctx.fillStyle = teamColor;
@@ -519,7 +482,6 @@ function drawVictim(vic) {
 
   pctx.restore();
 
-  // Skull badge (top-right)
   const bx = cx + R * 0.65, by = cy - R * 0.65;
   pctx.beginPath();
   pctx.arc(bx, by, R * 0.42, 0, Math.PI * 2);
@@ -534,7 +496,6 @@ function drawVictim(vic) {
   pctx.textBaseline = 'middle';
   pctx.fillText('✕', bx, by + 0.5);
 
-  // Name tag
   const tag = vic.n.length > 12 ? vic.n.slice(0, 11) + '…' : vic.n;
   pctx.font = '9px system-ui';
   pctx.textAlign = 'center';
@@ -548,18 +509,166 @@ function drawVictim(vic) {
   pctx.globalAlpha = 1;
 }
 
+function drawPredictionIcon(pred, cx, cy, R, opacity, teamColor) {
+  const icon = agentIconCache[pred.agent];
+  loadAgentIcon(pred.agent);
+
+  pctx.beginPath();
+  pctx.arc(cx, cy, R + 2, 0, Math.PI * 2);
+  pctx.fillStyle = 'rgba(0,0,0,0.4)';
+  pctx.fill();
+
+  pctx.save();
+  pctx.globalAlpha = opacity * 0.85;
+
+  if (icon) {
+    pctx.beginPath();
+    pctx.arc(cx, cy, R + 1.5, 0, Math.PI * 2);
+    pctx.strokeStyle = teamColor;
+    pctx.lineWidth = 2;
+    pctx.stroke();
+
+    pctx.beginPath();
+    pctx.arc(cx, cy, R, 0, Math.PI * 2);
+    pctx.fillStyle = 'rgba(15,23,42,0.6)';
+    pctx.fill();
+
+    pctx.beginPath();
+    pctx.arc(cx, cy, R, 0, Math.PI * 2);
+    pctx.clip();
+    pctx.drawImage(icon, cx - R, cy - R, R * 2, R * 2);
+  } else {
+    pctx.beginPath();
+    pctx.arc(cx, cy, R, 0, Math.PI * 2);
+    pctx.fillStyle = teamColor;
+    pctx.fill();
+
+    pctx.beginPath();
+    pctx.arc(cx, cy, R + 1, 0, Math.PI * 2);
+    pctx.strokeStyle = teamColor;
+    pctx.lineWidth = 1.5;
+    pctx.stroke();
+
+    pctx.fillStyle = '#fff';
+    pctx.font = 'bold 7px system-ui';
+    pctx.textAlign = 'center';
+    pctx.textBaseline = 'middle';
+    pctx.fillText(abbr(pred.agent), cx, cy);
+  }
+
+  pctx.restore();
+
+  const tag = pred.player.length > 12 ? pred.player.slice(0, 11) + '…' : pred.player;
+  pctx.font = '9px system-ui';
+  pctx.textAlign = 'center';
+  pctx.textBaseline = 'top';
+  pctx.globalAlpha = 0.8;
+  const tw = pctx.measureText(tag).width;
+  pctx.fillStyle = 'rgba(0,0,0,0.7)';
+  pctx.fillRect(cx - tw / 2 - 2, cy + R + 2, tw + 4, 13);
+  pctx.fillStyle = teamColor;
+  pctx.fillText(tag, cx, cy + R + 3);
+  pctx.globalAlpha = 1;
+}
+
+function drawPredictions() {
+  pctx.clearRect(0, 0, pc.width, pc.height);
+
+  if (!currentMap || !PREDICTIONS[currentMap]) return;
+  const mapPreds = PREDICTIONS[currentMap].matches || {};
+  if (!currentMatch || !mapPreds[currentMatch]) return;
+  const matchPreds = mapPreds[currentMatch].rounds || {};
+  if (currentRound === null || !matchPreds[String(currentRound)]) return;
+
+  const roundPreds = matchPreds[String(currentRound)].buckets || {};
+  const timeBucketPreds = roundPreds[predictionTimeBucket] || [];
+
+  timeBucketPreds.forEach(p => {
+    const [cx, cy] = toCanvas(p.x, p.y, 'prediction');
+    const R = 9;
+    const opacity = p.confidence || 0.7;
+    const teamColor = p.team === 'Blue' ? '#3b82f6' : p.team === 'Red' ? '#ef4444' : '#888';
+    drawPredictionIcon(p, cx, cy, R, opacity, teamColor);
+  });
+
+  pctx.font = '11px system-ui';
+  pctx.fillStyle = 'rgba(255,255,255,0.7)';
+  pctx.textAlign = 'left';
+  pctx.textBaseline = 'top';
+  pctx.fillStyle = 'rgba(0,0,0,0.5)';
+  pctx.fillRect(8, 8, 320, 25);
+  pctx.fillStyle = '#e2e8f0';
+  pctx.fillText(`Round ${currentRound} Predictions: ${predictionTimeBucket}s (${timeBucketPreds.length} players shown)`, 12, 12);
+}
+
+function drawDebugCoords() {
+  pctx.clearRect(0, 0, pc.width, pc.height);
+
+  const debugPoints = [
+    { x: 0.7688, y: 0.7688, label: 'ookiemaru (Neon)', color: '#fbbf24' },
+    { x: 1.2688, y: 1.2688, label: 'clover (Sage)', color: '#60a5fa' },
+    { x: 1.3688, y: 1.3688, label: 'Water (Brimstone)', color: '#ef4444' },
+    { x: 1.4688, y: 1.4688, label: 'MasterMike (Phoenix)', color: '#8b5cf6' },
+    { x: 1.5688, y: 1.5688, label: 'clover2 (Skye)', color: '#34d399' }
+  ];
+
+  debugPoints.forEach((p, idx) => {
+    const [cx, cy] = toCanvas(p.x, p.y, 'prediction');
+    const R = 16;
+
+    pctx.beginPath();
+    pctx.arc(cx, cy, R + 4, 0, Math.PI * 2);
+    pctx.fillStyle = p.color + '33';
+    pctx.fill();
+
+    pctx.beginPath();
+    pctx.arc(cx, cy, R, 0, Math.PI * 2);
+    pctx.fillStyle = p.color;
+    pctx.fill();
+
+    pctx.beginPath();
+    pctx.arc(cx, cy, R, 0, Math.PI * 2);
+    pctx.strokeStyle = '#fff';
+    pctx.lineWidth = 2;
+    pctx.stroke();
+
+    pctx.fillStyle = '#000';
+    pctx.font = 'bold 14px system-ui';
+    pctx.textAlign = 'center';
+    pctx.textBaseline = 'middle';
+    pctx.fillText(idx + 1, cx, cy);
+
+    pctx.font = '10px system-ui';
+    pctx.fillStyle = '#fff';
+    pctx.textAlign = 'center';
+    pctx.textBaseline = 'top';
+    pctx.fillText(p.label, cx, cy + R + 12);
+
+    pctx.font = '9px monospace';
+    pctx.fillStyle = '#ccc';
+    pctx.fillText(`(${p.x.toFixed(4)}, ${p.y.toFixed(4)})`, cx, cy + R + 24);
+  });
+
+  pctx.font = '14px system-ui';
+  pctx.fillStyle = '#8b5cf6';
+  pctx.textAlign = 'left';
+  pctx.textBaseline = 'top';
+  pctx.fillText('DEBUG: 5 Test Prediction Coordinates', 12, 12);
+}
+
 function drawPlayers() {
   pctx.clearRect(0, 0, pc.width, pc.height);
   const kills = getKills();
-  if (!kills.length) return;
+  if (!kills.length && mode !== 'pred' && mode !== 'debug') return;
 
   if (mode === 'heat') { drawHeatmap(kills); return; }
+  if (mode === 'pred') { drawPredictions(); return; }
+  if (mode === 'debug') { drawDebugCoords(); return; }
 
   const sel = currentKillIdx !== null ? kills[currentKillIdx] : null;
   const players = sel ? sel.p : kills.flatMap(k => k.p);
   const killerName = sel ? sel.k : null;
 
-  // Draw victim(s) first so live players render on top
   if (sel) {
     drawVictim(sel.vic);
   } else {
@@ -575,28 +684,23 @@ function drawPlayers() {
 
     drawFacingArrow(p, cx, cy, R, teamColor, isKiller);
 
-    // Shadow ring
     pctx.beginPath();
     pctx.arc(cx, cy, R + 2, 0, Math.PI * 2);
     pctx.fillStyle = 'rgba(0,0,0,0.55)';
     pctx.fill();
 
     if (icon) {
-      // --- AGENT ICON MODE ---
-      // Ring: always team color; killer gets thicker ring to stand out
       pctx.beginPath();
       pctx.arc(cx, cy, R + 1.5, 0, Math.PI * 2);
       pctx.strokeStyle = teamColor;
       pctx.lineWidth = isKiller ? 3.5 : 2;
       pctx.stroke();
 
-      // Background circle behind icon
       pctx.beginPath();
       pctx.arc(cx, cy, R, 0, Math.PI * 2);
       pctx.fillStyle = 'rgba(15,23,42,0.6)';
       pctx.fill();
 
-      // Clip to circle and draw icon
       pctx.save();
       pctx.beginPath();
       pctx.arc(cx, cy, R, 0, Math.PI * 2);
@@ -604,7 +708,6 @@ function drawPlayers() {
       pctx.drawImage(icon, cx - R, cy - R, R * 2, R * 2);
       pctx.restore();
 
-      // Gold star badge (top-right corner) for killer
       if (isKiller) {
         const bx = cx + R * 0.6, by = cy - R * 0.6;
         pctx.beginPath();
@@ -619,20 +722,17 @@ function drawPlayers() {
       }
 
     } else {
-      // --- FALLBACK: DOT + ABBREVIATION MODE ---
       pctx.beginPath();
       pctx.arc(cx, cy, R, 0, Math.PI * 2);
       pctx.fillStyle = teamColor;
       pctx.fill();
 
-      // Thicker border for killer
       pctx.beginPath();
       pctx.arc(cx, cy, R + 1, 0, Math.PI * 2);
       pctx.strokeStyle = teamColor;
       pctx.lineWidth = isKiller ? 3 : 1.5;
       pctx.stroke();
 
-      // Gold star badge for killer (dot mode)
       if (isKiller) {
         const bx = cx + R * 0.6, by = cy - R * 0.6;
         pctx.beginPath();
@@ -653,7 +753,6 @@ function drawPlayers() {
       pctx.fillText(abbr(p.a), cx, cy);
     }
 
-    // Name tag below icon/dot
     const tag = p.n.length > 12 ? p.n.slice(0, 11) + '…' : p.n;
     pctx.font = '9px system-ui';
     pctx.textAlign = 'center';
@@ -701,88 +800,6 @@ function drawHeatmap(kills) {
   pctx.putImageData(imgData, 0, 0);
 }
 
-function drawZones() {
-  zctx.clearRect(0, 0, zc.width, zc.height);
-
-  // Draw saved zones
-  (zones[currentMap] || []).forEach((z, i) => {
-    if (!z.points || z.points.length < 2) return;
-    const col = ZONE_COLORS[i % ZONE_COLORS.length];
-
-    // Convert stored normalized points back to canvas coords
-    const pts = z.points.map(([nx, ny]) => toCanvas(nx, ny));
-
-    zctx.beginPath();
-    zctx.moveTo(pts[0][0], pts[0][1]);
-    for (let j = 1; j < pts.length; j++) zctx.lineTo(pts[j][0], pts[j][1]);
-    zctx.closePath();
-    zctx.fillStyle = col + '33';
-    zctx.fill();
-    zctx.strokeStyle = col;
-    zctx.lineWidth = 2;
-    zctx.setLineDash([]);
-    zctx.stroke();
-
-    // Label at centroid
-    const cx = pts.reduce((s, p) => s + p[0], 0) / pts.length;
-    const cy = pts.reduce((s, p) => s + p[1], 0) / pts.length;
-    zctx.font = 'bold 11px system-ui';
-    const lw = zctx.measureText(z.name).width + 8;
-    zctx.fillStyle = col + 'cc';
-    zctx.fillRect(cx - lw / 2, cy - 9, lw, 18);
-    zctx.fillStyle = '#fff';
-    zctx.textAlign = 'center';
-    zctx.textBaseline = 'middle';
-    zctx.fillText(z.name, cx, cy);
-  });
-
-  // Draw polygon in progress
-  if (polyPoints.length > 0) {
-    const col = ZONE_COLORS[(zones[currentMap] || []).length % ZONE_COLORS.length];
-    zctx.beginPath();
-    zctx.moveTo(polyPoints[0][0], polyPoints[0][1]);
-    for (let j = 1; j < polyPoints.length; j++) zctx.lineTo(polyPoints[j][0], polyPoints[j][1]);
-    if (polyMouse) zctx.lineTo(polyMouse[0], polyMouse[1]);
-    zctx.strokeStyle = col;
-    zctx.lineWidth = 2;
-    zctx.setLineDash([6, 3]);
-    zctx.stroke();
-    zctx.setLineDash([]);
-
-    // Fill preview
-    if (polyPoints.length > 1) {
-      zctx.beginPath();
-      zctx.moveTo(polyPoints[0][0], polyPoints[0][1]);
-      polyPoints.forEach(([x, y]) => zctx.lineTo(x, y));
-      if (polyMouse) zctx.lineTo(polyMouse[0], polyMouse[1]);
-      zctx.closePath();
-      zctx.fillStyle = col + '22';
-      zctx.fill();
-    }
-
-    // Vertex dots
-    polyPoints.forEach(([x, y], idx) => {
-      zctx.beginPath();
-      zctx.arc(x, y, idx === 0 ? 6 : 4, 0, Math.PI * 2);
-      zctx.fillStyle = idx === 0 ? col : col + 'cc';
-      zctx.fill();
-      zctx.strokeStyle = '#fff';
-      zctx.lineWidth = 1;
-      zctx.stroke();
-    });
-
-    // Hint
-    zctx.font = '11px system-ui';
-    zctx.fillStyle = 'rgba(255,255,255,0.7)';
-    zctx.textAlign = 'left';
-    zctx.textBaseline = 'top';
-    zctx.fillStyle = 'rgba(0,0,0,0.5)';
-    zctx.fillRect(8, 8, 260, 18);
-    zctx.fillStyle = '#e2e8f0';
-    zctx.fillText(`${polyPoints.length} point${polyPoints.length!==1?'s':''} — double-click or click ① to close  |  Esc to cancel`, 12, 11);
-  }
-}
-
 function updateKillList() {
   const kills = getKills();
   const list = document.getElementById('kill-list');
@@ -813,7 +830,7 @@ function populateMatches() {
   matchIds.forEach(matchId => {
     const o = document.createElement('option');
     o.value = matchId;
-    o.textContent = matchId;   // ← no date at all
+    o.textContent = matchId;
     matchSel.appendChild(o);
   });
 
@@ -848,32 +865,9 @@ function populateKills() {
   });
   currentKillIdx = null;
   preloadAgentIcons();
-  updateKillList(); updateKillDetail(); drawPlayers(); drawZones();
+  updateKillList(); updateKillDetail(); drawPlayers();
 }
 
-function updateZonePanel() {
-  const mapZones = zones[currentMap] || [];
-  const list = document.getElementById('zone-list');
-  if (!mapZones.length) {
-    list.innerHTML = '<div style="font-size:11px;color:#475569">No zones. Switch to "Draw zones", click to place points, double-click to finish.</div>'; return;
-  }
-  list.innerHTML = '';
-  mapZones.forEach((z, i) => {
-    const row = document.createElement('div'); row.className = 'zone-item';
-    const col = ZONE_COLORS[i % ZONE_COLORS.length];
-    row.innerHTML = `<div class="zone-badge" style="background:${col}"></div><div class="zone-name">${z.name}</div><div class="zone-del" data-i="${i}">×</div>`;
-    row.querySelector('.zone-del').onclick = () => { zones[currentMap].splice(i,1); updateZonePanel(); drawZones(); };
-    list.appendChild(row);
-  });
-}
-
-function doExport() {
-  const blob = new Blob([JSON.stringify(zones, null, 2)], {type:'application/json'});
-  const a = document.createElement('a'); a.href = URL.createObjectURL(blob);
-  a.download = 'valorant_zones.json'; a.click();
-}
-
-// Controls
 const mapSel = document.getElementById('mapSel');
 const matchSel = document.getElementById('matchSel');
 const roundSel = document.getElementById('roundSel');
@@ -895,12 +889,9 @@ mapSel.onchange = () => {
   currentMatch = null;
   currentRound = null;
   currentKillIdx = null;
-  polyPoints = [];
-  polyMouse = null;
   imageCache = {};
   loadMapImage(currentMap);
   populateMatches();
-  updateZonePanel();
 };
 
 matchSel.onchange = () => {
@@ -924,25 +915,24 @@ killSel.onchange = () => {
 };
 
 document.getElementById('btnView').onclick = () => { mode='view'; setMode(); };
-document.getElementById('btnZone').onclick = () => { mode='zone'; setMode(); };
 document.getElementById('btnHeat').onclick = () => { mode='heat'; setMode(); };
+document.getElementById('btnPred').onclick = () => { mode='pred'; setMode(); };
+document.getElementById('btnDebug').onclick = () => { mode='debug'; setMode(); };
 
 document.getElementById('mapOpacity').oninput = function() {
   mapOpacity = this.value / 100;
-  document.getElementById('opacityVal').textContent = this.value + '%';
   drawMapImage();
 };
 
-document.getElementById('exportZones').onclick = doExport;
-document.getElementById('exportZonesPanel').onclick = doExport;
+document.getElementById('predictionTimeBucket').onchange = function() {
+  predictionTimeBucket = this.value;
+  if (mode === 'pred') drawPlayers();
+};
 
 function setMode() {
-  ['btnView','btnZone','btnHeat'].forEach(id => document.getElementById(id).classList.remove('active'));
-  document.getElementById({view:'btnView',zone:'btnZone',heat:'btnHeat'}[mode]).classList.add('active');
-  zc.classList.toggle('drawing', mode === 'zone');
-  // Cancel any polygon in progress when leaving zone mode
-  polyPoints = []; polyMouse = null;
-  drawPlayers(); drawZones();
+  ['btnView','btnHeat','btnPred','btnDebug'].forEach(id => document.getElementById(id).classList.remove('active'));
+  document.getElementById({view:'btnView',heat:'btnHeat',pred:'btnPred',debug:'btnDebug'}[mode]).classList.add('active');
+  drawPlayers();
 }
 
 pc.onmousemove = (e) => {
@@ -980,65 +970,14 @@ pc.onmousemove = (e) => {
 };
 pc.onmouseleave = () => { tip.style.display='none'; };
 
-// Zone drawing — polygon mode: click to add points, double-click or click first point to close
-function getZoneCanvasPos(e) {
-  const rect = zc.getBoundingClientRect();
-  return [e.clientX - rect.left, e.clientY - rect.top];
-}
-
-function finishPolygon() {
-  if (polyPoints.length < 3) { polyPoints = []; polyMouse = null; drawZones(); return; }
-  const name = prompt('Zone name (e.g. "A Site", "Mid"):');
-  if (!name) { polyPoints = []; polyMouse = null; drawZones(); return; }
-  // Store points as normalized coords so they survive resize/map changes
-  const normPoints = polyPoints.map(([cx, cy]) => fromCanvas(cx, cy));
-  if (!zones[currentMap]) zones[currentMap] = [];
-  zones[currentMap].push({ name, points: normPoints });
-  polyPoints = []; polyMouse = null;
-  drawZones(); updateZonePanel();
-}
-
-zc.onclick = (e) => {
-  if (mode !== 'zone') return;
-  const pos = getZoneCanvasPos(e);
-  // Click near first point to close polygon (snap radius 10px)
-  if (polyPoints.length >= 3) {
-    const dx = pos[0] - polyPoints[0][0], dy = pos[1] - polyPoints[0][1];
-    if (Math.hypot(dx, dy) < 10) { finishPolygon(); return; }
-  }
-  polyPoints.push(pos);
-  drawZones();
-};
-
-zc.ondblclick = (e) => {
-  if (mode !== 'zone') return;
-  // Remove the last point added by the first click of the double-click
-  if (polyPoints.length > 0) polyPoints.pop();
-  finishPolygon();
-};
-
-zc.onmousemove = (e) => {
-  if (mode !== 'zone') return;
-  polyMouse = getZoneCanvasPos(e);
-  if (polyPoints.length > 0) drawZones();
-};
-
-zc.onmouseleave = () => { polyMouse = null; if (polyPoints.length > 0) drawZones(); };
-
-document.addEventListener('keydown', (e) => {
-  if (e.key === 'Escape' && mode === 'zone' && polyPoints.length > 0) {
-    polyPoints = []; polyMouse = null; drawZones();
-  }
-});
-
 new ResizeObserver(resize).observe(wrap);
 async function initializeApp() {
   try {
     await loadRawFromDatabase();
+    await loadPredictionsFromDatabase();
     populateMapOptions();
     loadMapImage(currentMap);
     populateMatches();
-    updateZonePanel();
     resize();
   } catch (err) {
     console.error(err);

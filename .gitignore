@@ -3,6 +3,10 @@
 *.sqlite
 *.sqlite3
 
+#specific files
+valorant.db
+map_zones.py
+
 # Python
 __pycache__/
 *.py[cod]
