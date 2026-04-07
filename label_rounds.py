@@ -297,10 +297,10 @@ def label_all_rounds(db_path: Path = DB_PATH) -> pd.DataFrame:
     site_centroids = compute_site_centroids(df_rounds)
 
     # Choose best available location fields
-    kill_x_expr = "k.kill_location_x" if "kill_location_x" in kill_cols else (
+    kill_x_expr = "k.victim_location_x" if "victim_location_x" in kill_cols else (
         "k.killer_location_x" if "killer_location_x" in kill_cols else "NULL"
     )
-    kill_y_expr = "k.kill_location_y" if "kill_location_y" in kill_cols else (
+    kill_y_expr = "k.victim_location_y" if "victim_location_y" in kill_cols else (
         "k.killer_location_y" if "killer_location_y" in kill_cols else "NULL"
     )
     site_expr = "COALESCE(k.site, '')" if "site" in kill_cols else "''"

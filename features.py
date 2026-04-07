@@ -156,16 +156,16 @@ def _compute_site_centroids_from_kills(df_kills: pd.DataFrame) -> dict[str, dict
 
     usable = usable[
         usable["site_norm"].isin(["A", "B"])
-        & usable["kill_location_x"].notna()
-        & usable["kill_location_y"].notna()
+        & usable["victim_location_x"].notna()
+        & usable["victim_location_y"].notna()
     ]
 
     if usable.empty:
         return centroids
 
     for (map_name, site), grp in usable.groupby(["map", "site_norm"]):
-        cx = float(grp["kill_location_x"].mean())
-        cy = float(grp["kill_location_y"].mean())
+        cx = float(grp["victim_location_x"].mean())
+        cy = float(grp["victim_location_y"].mean())
         centroids.setdefault(map_name, {})[site] = (cx, cy)
 
     return centroids
@@ -589,8 +589,8 @@ def build_datasets(
             k.victim,
             k.killer_agent,
             k.victim_agent,
-            k.kill_location_x,
-            k.kill_location_y
+            k.victim_location_x,
+            k.victim_location_y
         FROM kills k
         JOIN rounds r ON r.round_id = k.round_id
         JOIN matches m ON m.match_id = k.match_id

@@ -265,6 +265,7 @@ def _insert_matches_to_db(matches_data, db_path: str = DB_PATH) -> None:
             victim_puuid      TEXT,
             killer_agent      TEXT,
             victim_agent      TEXT,
+            site              TEXT,
             weapon            TEXT,
             killer_location_x REAL,
             killer_location_y REAL,
@@ -423,13 +424,24 @@ def _insert_matches_to_db(matches_data, db_path: str = DB_PATH) -> None:
             weapon_obj = kill.get("weapon", {}) or {}
             weapon = weapon_obj.get("name", "Unknown") if isinstance(weapon_obj, dict) else str(weapon_obj)
 
-            killer_location = kill.get("location", {}) or {}
-            killer_loc_x = killer_location.get("x")
-            killer_loc_y = killer_location.get("y")
+            # victim location (death location)
+            kill_location = kill.get("location", {}) or {}
+            victim_loc_x = kill_location.get("x")
+            victim_loc_y = kill_location.get("y")
 
-            victim_location = victim_obj.get("location", {}) or {}
-            victim_loc_x = victim_location.get("x")
-            victim_loc_y = victim_location.get("y")
+            # killer location (from player_locations)
+            killer_loc_x = None
+            killer_loc_y = None
+            player_locations = kill.get("player_locations", []) or []
+
+            for p in player_locations:
+                player = p.get("player", {}) or {}
+                if player.get("puuid") == killer_puuid:
+                    loc = p.get("location", {}) or {}
+                    killer_loc_x = loc.get("x")
+                    killer_loc_y = loc.get("y")
+                    break
+
 
             timestamp_ms = int(kill.get("time_in_round_in_ms", 0) or 0)
             timestamp_sec = timestamp_ms / 1000.0
@@ -440,16 +452,18 @@ def _insert_matches_to_db(matches_data, db_path: str = DB_PATH) -> None:
 
             kill_id = f"{match_id}_kill_{match_kill_counter:06d}"
             cur.execute(
-                "INSERT OR IGNORE INTO kills VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)",
+                "INSERT OR IGNORE INTO kills VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)",
                 (
                     kill_id, round_id, round_num, match_id,
                     killer, victim, killer_puuid, victim_puuid,
-                    killer_agent, victim_agent, weapon,
-                    killer_loc_x, killer_loc_y, victim_loc_x, victim_loc_y,
+                    killer_agent, victim_agent,
+                    site, weapon,
                     killer_loc_x, killer_loc_y,
-                    site, timestamp_sec, timestamp_ms, is_first_blood
+                    victim_loc_x, victim_loc_y,
+                    timestamp_sec, timestamp_ms, is_first_blood
                 )
             )
+
 
             player_locations = kill.get("player_locations", []) or []
             for idx, player_loc in enumerate(player_locations):
