@@ -74,7 +74,7 @@ LABEL_NAMES = {
 
 # ── Feature layout ────────────────────────────────────────────────────────────
 # Previous 36 + 4 movement features = 40
-FEATURE_DIM = 40
+FEATURE_DIM = 48
 
 # [0]     timestamp_fraction
 # [1]     a_ratio
@@ -109,6 +109,14 @@ FEATURE_DIM = 40
 # [37]    attacker_max_speed_norm
 # [38]    toward_A_fraction
 # [39]    toward_B_fraction
+# [40]    pred_attacker_A_fraction
+# [41]    pred_attacker_B_fraction
+# [42]    pred_attacker_MID_fraction
+# [43]    pred_attacker_spread_mean_norm
+# [44]    pred_attacker_spread_max_norm
+# [45]    pred_commitment_strength
+# [46]    pred_mean_confidence
+# [47]    pred_available_flag
 
 def get_table_columns(conn: sqlite3.Connection, table_name: str) -> set[str]:
     rows = conn.execute(f"PRAGMA table_info({table_name})").fetchall()
@@ -213,6 +221,128 @@ def _latest_player_snapshot(loc_round: pd.DataFrame, t_ms: int) -> pd.DataFrame:
     snap = snap.groupby("player_name", as_index=False).tail(1)
     return snap
 
+def _prediction_bucket_for_t(t_ms: int) -> str | None:
+    if t_ms <= 15_000:
+        return "0-15"
+    if t_ms <= 30_000:
+        return "15-30"
+    return "15-30"
+
+
+def _load_prediction_rows(conn: sqlite3.Connection) -> pd.DataFrame:
+    tables = {row[0] for row in conn.execute("SELECT name FROM sqlite_master WHERE type='table'")}
+    if "player_predictions" not in tables:
+        return pd.DataFrame(
+            columns=[
+                "round_id", "match_id", "round_num", "player_name", "team",
+                "time_bucket", "predicted_x", "predicted_y", "confidence"
+            ]
+        )
+
+    query = """
+        SELECT
+            round_id,
+            match_id,
+            round_num,
+            player_name,
+            team,
+            time_bucket,
+            predicted_x,
+            predicted_y,
+            confidence
+        FROM player_predictions
+    """
+    return pd.read_sql_query(query, conn)
+
+
+def _prediction_snapshot(
+    pred_round: pd.DataFrame,
+    t_ms: int,
+) -> pd.DataFrame:
+    if pred_round.empty:
+        return pred_round
+
+    bucket = _prediction_bucket_for_t(t_ms)
+    if bucket is None:
+        return pd.DataFrame(columns=pred_round.columns)
+
+    snap = pred_round[pred_round["time_bucket"] == bucket].copy()
+    if snap.empty:
+        return snap
+
+    snap = snap.sort_values(["player_name", "confidence"], ascending=[True, False])
+    snap = snap.groupby("player_name", as_index=False).head(1)
+    return snap
+
+
+def _compute_prediction_presence_features(
+    pred_snapshot: pd.DataFrame,
+    map_name: str,
+    attack_team: str,
+    site_centroids: dict[str, dict[str, tuple[float, float]]],
+) -> tuple[float, float, float, float]:
+    if pred_snapshot.empty:
+        return 0.0, 0.0, 0.0, 0.0
+
+    attackers = pred_snapshot[pred_snapshot["team"] == attack_team].copy()
+    if attackers.empty:
+        return 0.0, 0.0, 0.0, 0.0
+
+    attackers["pred_site"] = attackers.apply(
+        lambda r: _infer_site_from_coords(
+            r["predicted_x"], r["predicted_y"], map_name, site_centroids
+        ),
+        axis=1,
+    )
+
+    counts = attackers["pred_site"].value_counts()
+    total = len(attackers)
+
+    a_frac = float(counts.get("A", 0) / total)
+    b_frac = float(counts.get("B", 0) / total)
+    m_frac = float(counts.get("MID", 0) / total)
+    commitment = max(a_frac, b_frac)
+
+    return a_frac, b_frac, m_frac, commitment
+
+
+def _compute_prediction_spread_features(
+    pred_snapshot: pd.DataFrame,
+    attack_team: str,
+    norm_denom: float = 20000.0,
+) -> tuple[float, float, float]:
+    if pred_snapshot.empty:
+        return 0.0, 0.0, 0.0
+
+    attackers = pred_snapshot[
+        (pred_snapshot["team"] == attack_team)
+        & pred_snapshot["predicted_x"].notna()
+        & pred_snapshot["predicted_y"].notna()
+    ][["predicted_x", "predicted_y"]].to_numpy(dtype=np.float32)
+
+    if len(attackers) == 0:
+        return 0.0, 0.0, 0.0
+
+    if len(attackers) == 1:
+        return 0.0, 0.0, 1.0
+
+    centroid = attackers.mean(axis=0)
+    dists = np.linalg.norm(attackers - centroid, axis=1)
+    mean_spread = float(dists.mean()) / norm_denom
+
+    max_pairwise = 0.0
+    for i in range(len(attackers)):
+        for j in range(i + 1, len(attackers)):
+            d = float(np.linalg.norm(attackers[i] - attackers[j]))
+            if d > max_pairwise:
+                max_pairwise = d
+
+    max_spread = max_pairwise / norm_denom
+    mean_conf = float(
+        pred_snapshot.loc[pred_snapshot["team"] == attack_team, "confidence"].mean()
+    ) if "confidence" in pred_snapshot.columns else 0.0
+
+    return mean_spread, max_spread, mean_conf
 
 def _compute_presence_features(
     player_snapshot: pd.DataFrame,
@@ -416,6 +546,7 @@ def _extract_snapshot(
     player_snapshot: pd.DataFrame,
     all_players_round: pd.DataFrame,
     loc_round: pd.DataFrame,
+    pred_round: pd.DataFrame,
     site_centroids: dict[str, dict[str, tuple[float, float]]],
 ) -> np.ndarray:
     vec = np.zeros(FEATURE_DIM, dtype=np.float32)
@@ -549,6 +680,29 @@ def _extract_snapshot(
     vec[38] = toward_a_frac
     vec[39] = toward_b_frac
 
+    # Prediction-derived attacker features
+    pred_snapshot = _prediction_snapshot(pred_round, t_ms)
+
+    pred_a_frac, pred_b_frac, pred_mid_frac, pred_commitment = _compute_prediction_presence_features(
+        pred_snapshot=pred_snapshot,
+        map_name=map_name,
+        attack_team=attack_team,
+        site_centroids=site_centroids,
+    )
+    pred_spread_mean, pred_spread_max, pred_mean_conf = _compute_prediction_spread_features(
+        pred_snapshot=pred_snapshot,
+        attack_team=attack_team,
+    )
+
+    vec[40] = pred_a_frac
+    vec[41] = pred_b_frac
+    vec[42] = pred_mid_frac
+    vec[43] = pred_spread_mean
+    vec[44] = pred_spread_max
+    vec[45] = pred_commitment
+    vec[46] = pred_mean_conf
+    vec[47] = 1.0 if not pred_snapshot.empty else 0.0
+
     return vec
 
 
@@ -617,8 +771,14 @@ def build_datasets(
         df_pl = pd.read_sql_query(pl_sql, conn)
     except Exception:
         df_pl = pd.DataFrame(
-            columns=["round_id", "match_id", "timestamp_ms", "player_name", "team", "location_x", "location_y", "view_radians"]
+            columns=[
+                "round_id", "match_id", "timestamp_ms", "player_name",
+                "team", "location_x", "location_y", "view_radians"
+            ]
         )
+
+    # Player predictions
+    df_pred = _load_prediction_rows(conn)
 
     # Players table
     players_sql = """
@@ -683,7 +843,24 @@ def build_datasets(
     X_static, X_seq, y, round_ids_out = [], [], [], []
 
     kills_by_round = {rid: grp.copy() for rid, grp in df_kills.groupby("round_id", sort=False)}
-    pl_by_round = {rid: grp.copy() for rid, grp in df_pl.groupby("round_id", sort=False)} if not df_pl.empty else {}
+    pl_by_round = (
+        {rid: grp.copy() for rid, grp in df_pl.groupby("round_id", sort=False)}
+        if not df_pl.empty else {}
+    )
+    pred_by_round = (
+        {rid: grp.copy() for rid, grp in df_pred.groupby("round_id", sort=False)}
+        if not df_pred.empty else {}
+    )
+
+    empty_loc_df = pd.DataFrame(columns=[
+        "round_id", "match_id", "timestamp_ms", "player_name",
+        "team", "location_x", "location_y", "view_radians"
+    ])
+
+    empty_pred_df = pd.DataFrame(columns=[
+        "round_id", "match_id", "round_num", "player_name",
+        "team", "time_bucket", "predicted_x", "predicted_y", "confidence"
+    ])
 
     for round_id, grp in kills_by_round.items():
         if round_id not in label_map:
@@ -693,19 +870,23 @@ def build_datasets(
         round_meta = dict(round_info_map.get(round_id, {}))
 
         match_id = round_meta.get("match_id", None)
-        map_name = round_meta.get("map", grp["map"].iloc[0] if "map" in grp.columns and not grp.empty else "")
+        map_name = round_meta.get(
+            "map",
+            grp["map"].iloc[0] if "map" in grp.columns and not grp.empty else ""
+        )
 
         round_num = int(round_meta.get("round_num", 0))
         round_meta["attack_team"] = _infer_attack_team_from_round_num(round_num)
         round_meta["map"] = map_name
 
-        loc_grp = pl_by_round.get(
-            round_id,
-            pd.DataFrame(columns=["round_id", "match_id", "timestamp_ms", "player_name", "team", "location_x", "location_y", "view_radians"])
-        )
+        loc_grp = pl_by_round.get(round_id, empty_loc_df)
+        pred_grp = pred_by_round.get(round_id, empty_pred_df)
 
         if has_players and match_id is not None:
-            all_players_round = df_players[df_players["match_id"] == match_id][["player_name", "team"]].drop_duplicates()
+            all_players_round = (
+                df_players[df_players["match_id"] == match_id][["player_name", "team"]]
+                .drop_duplicates()
+            )
             agents_in_round = df_players[df_players["match_id"] == match_id]["agent"]
         else:
             all_players_round = loc_grp[["player_name", "team"]].drop_duplicates()
@@ -724,6 +905,7 @@ def build_datasets(
             player_snapshot=player_snapshot_t,
             all_players_round=all_players_round,
             loc_round=loc_grp,
+            pred_round=pred_grp,
             site_centroids=site_centroids,
         )
         X_static.append(feat_static)
@@ -745,6 +927,7 @@ def build_datasets(
                 player_snapshot=player_snapshot_t,
                 all_players_round=all_players_round,
                 loc_round=loc_grp,
+                pred_round=pred_grp,
                 site_centroids=site_centroids,
             ))
 

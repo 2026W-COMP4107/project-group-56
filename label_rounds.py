@@ -81,6 +81,111 @@ def get_table_columns(conn: sqlite3.Connection, table_name: str) -> set[str]:
     rows = conn.execute(f"PRAGMA table_info({table_name})").fetchall()
     return {row[1] for row in rows}
 
+def load_prediction_rows(conn: sqlite3.Connection) -> pd.DataFrame:
+    tables = {row[0] for row in conn.execute("SELECT name FROM sqlite_master WHERE type='table'")}
+    if "player_predictions" not in tables:
+        return pd.DataFrame(
+            columns=[
+                "round_id", "match_id", "map", "round_num", "player_name",
+                "team", "time_bucket", "predicted_x", "predicted_y", "confidence"
+            ]
+        )
+
+    query = """
+        SELECT
+            pp.round_id,
+            pp.match_id,
+            m.map,
+            pp.round_num,
+            pp.player_name,
+            pp.team,
+            pp.time_bucket,
+            pp.predicted_x,
+            pp.predicted_y,
+            pp.confidence
+        FROM player_predictions pp
+        JOIN matches m ON m.match_id = pp.match_id
+    """
+    return pd.read_sql_query(query, conn)
+
+
+def bucket_end_ms(bucket: str) -> int:
+    if bucket == "0-15":
+        return 15_000
+    if bucket == "15-30":
+        return 30_000
+    try:
+        return int(bucket.split("-")[1]) * 1000
+    except Exception:
+        return 30_000
+
+
+def prediction_snapshot_features(
+    pred_round: pd.DataFrame,
+    map_name: str,
+    site_centroids: dict[str, dict[str, tuple[float, float]]],
+    up_to_ms: int = 30_000,
+) -> dict:
+    if pred_round.empty:
+        return {
+            "a_frac": 0.0,
+            "b_frac": 0.0,
+            "mid_frac": 0.0,
+            "dominant_site": "",
+            "dominance": 0.0,
+            "mean_conf": 0.0,
+            "n_players": 0,
+        }
+
+    usable = pred_round[pred_round["time_bucket"].apply(bucket_end_ms) <= up_to_ms].copy()
+    if usable.empty:
+        return {
+            "a_frac": 0.0,
+            "b_frac": 0.0,
+            "mid_frac": 0.0,
+            "dominant_site": "",
+            "dominance": 0.0,
+            "mean_conf": 0.0,
+            "n_players": 0,
+        }
+
+    # keep latest available bucket per player up to requested time
+    usable["bucket_end_ms"] = usable["time_bucket"].apply(bucket_end_ms)
+    usable = usable.sort_values(["player_name", "bucket_end_ms"])
+    usable = usable.groupby("player_name", as_index=False).tail(1)
+
+    usable["pred_site"] = usable.apply(
+        lambda r: infer_site_from_coords(
+            r["predicted_x"], r["predicted_y"], map_name, site_centroids
+        ),
+        axis=1,
+    )
+
+    counts = usable["pred_site"].value_counts()
+    n = len(usable)
+
+    a_frac = float(counts.get("A", 0) / max(1, n))
+    b_frac = float(counts.get("B", 0) / max(1, n))
+    mid_frac = float(counts.get("MID", 0) / max(1, n))
+
+    dominant_site = ""
+    dominance = 0.0
+    if a_frac >= b_frac and a_frac > 0:
+        dominant_site = "A"
+        dominance = a_frac
+    elif b_frac > a_frac and b_frac > 0:
+        dominant_site = "B"
+        dominance = b_frac
+
+    return {
+        "a_frac": a_frac,
+        "b_frac": b_frac,
+        "mid_frac": mid_frac,
+        "dominant_site": dominant_site,
+        "dominance": dominance,
+        "mean_conf": float(usable["confidence"].mean()) if "confidence" in usable.columns else 0.0,
+        "n_players": int(n),
+    }
 
 def compute_site_centroids(df_rounds: pd.DataFrame) -> dict[str, dict[str, tuple[float, float]]]:
     """
@@ -146,35 +251,47 @@ def infer_site_from_coords(
     return ""
 
 
-def choose_final_site(round_row: pd.Series, round_kills: pd.DataFrame) -> str:
+def choose_final_site(
+    round_row: pd.Series,
+    round_kills: pd.DataFrame,
+    pred_feats_30: dict | None = None,
+) -> str:
     """
     Final committed site:
     1. plant_site if present
     2. majority of late-site events
     3. majority of all known site events
+    4. prediction-derived dominant site at 15-30 / <=30 s
     """
     plant_site = _norm_site(round_row.get("plant_site"))
     if plant_site in {"A", "B"}:
         return plant_site
 
-    if round_kills.empty:
-        return ""
+    if not round_kills.empty:
+        late = round_kills[round_kills["timestamp_ms"] > EARLY_WINDOW_MS]
+        late_known = late[late["event_site"].isin(["A", "B"])]
+        if not late_known.empty:
+            counts = late_known["event_site"].value_counts()
+            return str(counts.idxmax())
 
-    late = round_kills[round_kills["timestamp_ms"] > EARLY_WINDOW_MS]
-    late_known = late[late["event_site"].isin(["A", "B"])]
-    if not late_known.empty:
-        counts = late_known["event_site"].value_counts()
-        return str(counts.idxmax())
+        all_known = round_kills[round_kills["event_site"].isin(["A", "B"])]
+        if not all_known.empty:
+            counts = all_known["event_site"].value_counts()
+            return str(counts.idxmax())
 
-    all_known = round_kills[round_kills["event_site"].isin(["A", "B"])]
-    if not all_known.empty:
-        counts = all_known["event_site"].value_counts()
-        return str(counts.idxmax())
+    if pred_feats_30:
+        if pred_feats_30["dominant_site"] in {"A", "B"} and pred_feats_30["dominance"] >= 0.60:
+            return pred_feats_30["dominant_site"]
 
     return ""
 
 
-def classify_round(round_row: pd.Series, kills_df: pd.DataFrame) -> tuple[int, str, float]:
+def classify_round(
+    round_row: pd.Series,
+    kills_df: pd.DataFrame,
+    pred_round_df: pd.DataFrame,
+    site_centroids: dict[str, dict[str, tuple[float, float]]],
+) -> tuple[int, str, float]:
     """
     Classify a single round using plant site/time + inferred event-site flow.
     """
@@ -183,9 +300,16 @@ def classify_round(round_row: pd.Series, kills_df: pd.DataFrame) -> tuple[int, s
         plant_time_ms = None
     else:
         plant_time_ms = float(plant_time_ms)
+    
+    pred_feats_15 = prediction_snapshot_features(
+        pred_round_df, round_row["map"], site_centroids, up_to_ms=15_000
+    )
+    pred_feats_30 = prediction_snapshot_features(
+        pred_round_df, round_row["map"], site_centroids, up_to_ms=30_000
+    )
 
     result = str(round_row.get("result") or "")
-    final_site = choose_final_site(round_row, kills_df)
+    final_site = choose_final_site(round_row, kills_df, pred_feats_30)
 
     if kills_df.empty:
         if plant_time_ms is not None and plant_time_ms >= LATE_THRESHOLD_MS:
@@ -258,6 +382,41 @@ def classify_round(round_row: pd.Series, kills_df: pd.DataFrame) -> tuple[int, s
             if final_ratio >= 0.80 and mid_ratio <= 0.15:
                 return 1, LABEL_NAMES[1], 0.82
 
+    # ── Prediction-backed rush fallback ─────────────────────────────────────
+    # Useful when early kills are sparse but attacker prediction strongly clusters to one site.
+    if final_site == "A":
+        if (
+            pred_feats_15["a_frac"] >= 0.80
+            and pred_feats_15["mid_frac"] <= 0.20
+            and pred_feats_15["mean_conf"] >= 0.70
+        ):
+            return 0, LABEL_NAMES[0], 0.68
+
+    if final_site == "B":
+        if (
+            pred_feats_15["b_frac"] >= 0.80
+            and pred_feats_15["mid_frac"] <= 0.20
+            and pred_feats_15["mean_conf"] >= 0.70
+        ):
+            return 1, LABEL_NAMES[1], 0.68
+
+    # ── Prediction-backed split fallback ────────────────────────────────────
+    if final_site == "A":
+        if (
+            pred_feats_15["mid_frac"] >= 0.20
+            and pred_feats_30["a_frac"] >= 0.45
+            and pred_feats_30["mean_conf"] >= 0.65
+        ):
+            return 2, LABEL_NAMES[2], 0.66
+
+    if final_site == "B":
+        if (
+            pred_feats_15["mid_frac"] >= 0.20
+            and pred_feats_30["b_frac"] >= 0.45
+            and pred_feats_30["mean_conf"] >= 0.65
+        ):
+            return 3, LABEL_NAMES[3], 0.66
+
     # ── Default ──────────────────────────────────────────────────────────────
     return 4, LABEL_NAMES[4], 0.55
 
@@ -268,6 +427,7 @@ def label_all_rounds(db_path: Path = DB_PATH) -> pd.DataFrame:
 
     round_cols = get_table_columns(conn, "rounds")
     kill_cols = get_table_columns(conn, "kills")
+    df_preds = load_prediction_rows(conn)
 
     if "plant_site" not in round_cols:
         raise RuntimeError(
@@ -356,7 +516,8 @@ def label_all_rounds(db_path: Path = DB_PATH) -> pd.DataFrame:
             continue
 
         grp = df_kills[df_kills["round_id"] == round_row["round_id"]].copy()
-        label, name, conf = classify_round(round_row, grp)
+        pred_grp = df_preds[df_preds["round_id"] == round_row["round_id"]].copy() if not df_preds.empty else pd.DataFrame()
+        label, name, conf = classify_round(round_row, grp, pred_grp, site_centroids)
 
         results.append({
             "round_id": round_row["round_id"],
