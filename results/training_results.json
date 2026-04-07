@@ -1,0 +1,5433 @@
+{
+  "_dataset": {
+    "n_samples": 7875,
+    "feature_dim_static": 40,
+    "feature_shape_seq": [
+      6,
+      40
+    ],
+    "maps": {
+      "Bind": 1837,
+      "Breeze": 1619,
+      "Fracture": 660,
+      "Pearl": 1859,
+      "Split": 1900
+    },
+    "split_sizes": {
+      "train": 5511,
+      "val": 1182,
+      "test": 1182
+    },
+    "class_distribution_full": {
+      "0": 678,
+      "1": 636,
+      "2": 1185,
+      "3": 815,
+      "4": 1561,
+      "5": 3000
+    },
+    "class_distribution_train": {
+      "0": 474,
+      "1": 445,
+      "2": 829,
+      "3": 570,
+      "4": 1093,
+      "5": 2100
+    }
+  },
+  "MLP": {
+    "train_loss_curve": [
+      1.6461,
+      1.2659,
+      1.1246,
+      1.0782,
+      1.0593,
+      1.0493,
+      1.0321,
+      1.0196,
+      1.0193,
+      1.0146,
+      1.0065,
+      1.0031,
+      0.9986,
+      0.9914,
+      0.9954,
+      0.9859,
+      0.9849,
+      0.9839,
+      0.9771,
+      0.975,
+      0.9718,
+      0.9772,
+      0.9702,
+      0.9629,
+      0.9674,
+      0.9658,
+      0.9608,
+      0.9555,
+      0.9584,
+      0.9553,
+      0.9454,
+      0.9563,
+      0.9541,
+      0.9471,
+      0.9524,
+      0.949,
+      0.9488,
+      0.9489,
+      0.9451,
+      0.9421,
+      0.9404,
+      0.9442,
+      0.942,
+      0.9408,
+      0.9319,
+      0.9352,
+      0.9348,
+      0.9348,
+      0.9346,
+      0.9351,
+      0.937,
+      0.9385,
+      0.9275,
+      0.9297,
+      0.9268,
+      0.9315,
+      0.9281,
+      0.9272,
+      0.924,
+      0.9209,
+      0.9185,
+      0.9185,
+      0.9198,
+      0.9258,
+      0.9142,
+      0.9177,
+      0.918,
+      0.9219,
+      0.9145,
+      0.9145,
+      0.9178,
+      0.9128,
+      0.9096,
+      0.9074
+    ],
+    "val_loss_curve": [
+      1.4038,
+      1.12,
+      1.0587,
+      1.0323,
+      1.0179,
+      1.0083,
+      0.9974,
+      0.9952,
+      0.9897,
+      0.9854,
+      0.9823,
+      0.9789,
+      0.9744,
+      0.974,
+      0.9721,
+      0.9695,
+      0.9677,
+      0.9654,
+      0.9628,
+      0.9659,
+      0.9645,
+      0.9625,
+      0.9606,
+      0.963,
+      0.9606,
+      0.9599,
+      0.9613,
+      0.961,
+      0.959,
+      0.9598,
+      0.9589,
+      0.9566,
+      0.9551,
+      0.9533,
+      0.9568,
+      0.9554,
+      0.9571,
+      0.9551,
+      0.9529,
+      0.9546,
+      0.9543,
+      0.9546,
+      0.9512,
+      0.9545,
+      0.9552,
+      0.9549,
+      0.9549,
+      0.9511,
+      0.9495,
+      0.9559,
+      0.9516,
+      0.9524,
+      0.9496,
+      0.9542,
+      0.9516,
+      0.9532,
+      0.9522,
+      0.9506,
+      0.9519,
+      0.9584,
+      0.9514,
+      0.9523,
+      0.9513,
+      0.9541,
+      0.9525,
+      0.9532,
+      0.9501,
+      0.9517,
+      0.9537,
+      0.9518,
+      0.9525,
+      0.9545,
+      0.9567,
+      0.9506
+    ],
+    "train_time_s": 24.2072,
+    "class_weights": [
+      1.4535,
+      1.5482,
+      0.8311,
+      1.2087,
+      0.6303,
+      0.3281
+    ],
+    "validation": {
+      "accuracy": 0.6777,
+      "balanced_accuracy": 0.5784,
+      "top2_accuracy": 0.8342,
+      "macro_precision": 0.5674,
+      "macro_recall": 0.5784,
+      "macro_f1": 0.5535,
+      "weighted_f1": 0.6789,
+      "confusion_matrix": [
+        [
+          48,
+          22,
+          18,
+          12,
+          2,
+          0
+        ],
+        [
+          10,
+          70,
+          4,
+          9,
+          2,
+          0
+        ],
+        [
+          34,
+          35,
+          54,
+          21,
+          34,
+          0
+        ],
+        [
+          4,
+          47,
+          4,
+          50,
+          18,
+          0
+        ],
+        [
+          10,
+          35,
+          20,
+          39,
+          130,
+          0
+        ],
+        [
+          0,
+          0,
+          0,
+          0,
+          1,
+          449
+        ]
+      ],
+      "per_class": {
+        "A-Site Rush": {
+          "precision": 0.4528,
+          "recall": 0.4706,
+          "f1": 0.4615,
+          "support": 102
+        },
+        "B-Site Rush": {
+          "precision": 0.3349,
+          "recall": 0.7368,
+          "f1": 0.4605,
+          "support": 95
+        },
+        "A Split": {
+          "precision": 0.54,
+          "recall": 0.3034,
+          "f1": 0.3885,
+          "support": 178
+        },
+        "B Split": {
+          "precision": 0.3817,
+          "recall": 0.4065,
+          "f1": 0.3937,
+          "support": 123
+        },
+        "Default": {
+          "precision": 0.6952,
+          "recall": 0.5556,
+          "f1": 0.6176,
+          "support": 234
+        },
+        "Slow Execute": {
+          "precision": 1.0,
+          "recall": 0.9978,
+          "f1": 0.9989,
+          "support": 450
+        }
+      },
+      "loss": 0.9495,
+      "per_map": {
+        "Bind": {
+          "accuracy": 0.7048,
+          "balanced_accuracy": 0.561,
+          "top2_accuracy": 0.8524,
+          "macro_precision": 0.538,
+          "macro_recall": 0.561,
+          "macro_f1": 0.53,
+          "weighted_f1": 0.7104,
+          "confusion_matrix": [
+            [
+              25,
+              9,
+              5,
+              6,
+              1,
+              0
+            ],
+            [
+              2,
+              11,
+              1,
+              1,
+              2,
+              0
+            ],
+            [
+              12,
+              4,
+              4,
+              3,
+              4,
+              0
+            ],
+            [
+              1,
+              6,
+              1,
+              6,
+              1,
+              0
+            ],
+            [
+              1,
+              7,
+              3,
+              9,
+              35,
+              0
+            ],
+            [
+              0,
+              0,
+              0,
+              0,
+              1,
+              110
+            ]
+          ],
+          "per_class": {
+            "A-Site Rush": {
+              "precision": 0.6098,
+              "recall": 0.5435,
+              "f1": 0.5747,
+              "support": 46
+            },
+            "B-Site Rush": {
+              "precision": 0.2973,
+              "recall": 0.6471,
+              "f1": 0.4074,
+              "support": 17
+            },
+            "A Split": {
+              "precision": 0.2857,
+              "recall": 0.1481,
+              "f1": 0.1951,
+              "support": 27
+            },
+            "B Split": {
+              "precision": 0.24,
+              "recall": 0.4,
+              "f1": 0.3,
+              "support": 15
+            },
+            "Default": {
+              "precision": 0.7955,
+              "recall": 0.6364,
+              "f1": 0.7071,
+              "support": 55
+            },
+            "Slow Execute": {
+              "precision": 1.0,
+              "recall": 0.991,
+              "f1": 0.9955,
+              "support": 111
+            }
+          },
+          "n_samples": 271
+        },
+        "Breeze": {
+          "accuracy": 0.6639,
+          "balanced_accuracy": 0.5627,
+          "top2_accuracy": 0.8506,
+          "macro_precision": 0.5449,
+          "macro_recall": 0.5627,
+          "macro_f1": 0.5323,
+          "weighted_f1": 0.6589,
+          "confusion_matrix": [
+            [
+              3,
+              5,
+              6,
+              1,
+              0,
+              0
+            ],
+            [
+              0,
+              17,
+              1,
+              3,
+              0,
+              0
+            ],
+            [
+              6,
+              8,
+              14,
+              9,
+              9,
+              0
+            ],
+            [
+              1,
+              13,
+              0,
+              14,
+              4,
+              0
+            ],
+            [
+              3,
+              5,
+              4,
+              3,
+              25,
+              0
+            ],
+            [
+              0,
+              0,
+              0,
+              0,
+              0,
+              87
+            ]
+          ],
+          "per_class": {
+            "A-Site Rush": {
+              "precision": 0.2308,
+              "recall": 0.2,
+              "f1": 0.2143,
+              "support": 15
+            },
+            "B-Site Rush": {
+              "precision": 0.3542,
+              "recall": 0.8095,
+              "f1": 0.4928,
+              "support": 21
+            },
+            "A Split": {
+              "precision": 0.56,
+              "recall": 0.3043,
+              "f1": 0.3944,
+              "support": 46
+            },
+            "B Split": {
+              "precision": 0.4667,
+              "recall": 0.4375,
+              "f1": 0.4516,
+              "support": 32
+            },
+            "Default": {
+              "precision": 0.6579,
+              "recall": 0.625,
+              "f1": 0.641,
+              "support": 40
+            },
+            "Slow Execute": {
+              "precision": 1.0,
+              "recall": 1.0,
+              "f1": 1.0,
+              "support": 87
+            }
+          },
+          "n_samples": 241
+        },
+        "Fracture": {
+          "accuracy": 0.5865,
+          "balanced_accuracy": 0.5055,
+          "top2_accuracy": 0.75,
+          "macro_precision": 0.5057,
+          "macro_recall": 0.5055,
+          "macro_f1": 0.4655,
+          "weighted_f1": 0.5875,
+          "confusion_matrix": [
+            [
+              2,
+              2,
+              0,
+              1,
+              0,
+              0
+            ],
+            [
+              1,
+              6,
+              0,
+              2,
+              0,
+              0
+            ],
+            [
+              4,
+              4,
+              5,
+              3,
+              5,
+              0
+            ],
+            [
+              0,
+              7,
+              1,
+              6,
+              2,
+              0
+            ],
+            [
+              2,
+              4,
+              1,
+              4,
+              6,
+              0
+            ],
+            [
+              0,
+              0,
+              0,
+              0,
+              0,
+              36
+            ]
+          ],
+          "per_class": {
+            "A-Site Rush": {
+              "precision": 0.2222,
+              "recall": 0.4,
+              "f1": 0.2857,
+              "support": 5
+            },
+            "B-Site Rush": {
+              "precision": 0.2609,
+              "recall": 0.6667,
+              "f1": 0.375,
+              "support": 9
+            },
+            "A Split": {
+              "precision": 0.7143,
+              "recall": 0.2381,
+              "f1": 0.3571,
+              "support": 21
+            },
+            "B Split": {
+              "precision": 0.375,
+              "recall": 0.375,
+              "f1": 0.375,
+              "support": 16
+            },
+            "Default": {
+              "precision": 0.4615,
+              "recall": 0.3529,
+              "f1": 0.4,
+              "support": 17
+            },
+            "Slow Execute": {
+              "precision": 1.0,
+              "recall": 1.0,
+              "f1": 1.0,
+              "support": 36
+            }
+          },
+          "n_samples": 104
+        },
+        "Pearl": {
+          "accuracy": 0.7038,
+          "balanced_accuracy": 0.6099,
+          "top2_accuracy": 0.8362,
+          "macro_precision": 0.5569,
+          "macro_recall": 0.6099,
+          "macro_f1": 0.5559,
+          "weighted_f1": 0.7031,
+          "confusion_matrix": [
+            [
+              14,
+              2,
+              2,
+              2,
+              0,
+              0
+            ],
+            [
+              4,
+              15,
+              0,
+              1,
+              0,
+              0
+            ],
+            [
+              9,
+              7,
+              7,
+              3,
+              9,
+              0
+            ],
+            [
+              0,
+              7,
+              1,
+              10,
+              3,
+              0
+            ],
+            [
+              3,
+              12,
+              7,
+              13,
+              40,
+              0
+            ],
+            [
+              0,
+              0,
+              0,
+              0,
+              0,
+              116
+            ]
+          ],
+          "per_class": {
+            "A-Site Rush": {
+              "precision": 0.4667,
+              "recall": 0.7,
+              "f1": 0.56,
+              "support": 20
+            },
+            "B-Site Rush": {
+              "precision": 0.3488,
+              "recall": 0.75,
+              "f1": 0.4762,
+              "support": 20
+            },
+            "A Split": {
+              "precision": 0.4118,
+              "recall": 0.2,
+              "f1": 0.2692,
+              "support": 35
+            },
+            "B Split": {
+              "precision": 0.3448,
+              "recall": 0.4762,
+              "f1": 0.4,
+              "support": 21
+            },
+            "Default": {
+              "precision": 0.7692,
+              "recall": 0.5333,
+              "f1": 0.6299,
+              "support": 75
+            },
+            "Slow Execute": {
+              "precision": 1.0,
+              "recall": 1.0,
+              "f1": 1.0,
+              "support": 116
+            }
+          },
+          "n_samples": 287
+        },
+        "Split": {
+          "accuracy": 0.6703,
+          "balanced_accuracy": 0.5599,
+          "top2_accuracy": 0.8315,
+          "macro_precision": 0.5617,
+          "macro_recall": 0.5599,
+          "macro_f1": 0.5457,
+          "weighted_f1": 0.6701,
+          "confusion_matrix": [
+            [
+              4,
+              4,
+              5,
+              2,
+              1,
+              0
+            ],
+            [
+              3,
+              21,
+              2,
+              2,
+              0,
+              0
+            ],
+            [
+              3,
+              12,
+              24,
+              3,
+              7,
+              0
+            ],
+            [
+              2,
+              14,
+              1,
+              14,
+              8,
+              0
+            ],
+            [
+              1,
+              7,
+              5,
+              10,
+              24,
+              0
+            ],
+            [
+              0,
+              0,
+              0,
+              0,
+              0,
+              100
+            ]
+          ],
+          "per_class": {
+            "A-Site Rush": {
+              "precision": 0.3077,
+              "recall": 0.25,
+              "f1": 0.2759,
+              "support": 16
+            },
+            "B-Site Rush": {
+              "precision": 0.3621,
+              "recall": 0.75,
+              "f1": 0.4884,
+              "support": 28
+            },
+            "A Split": {
+              "precision": 0.6486,
+              "recall": 0.4898,
+              "f1": 0.5581,
+              "support": 49
+            },
+            "B Split": {
+              "precision": 0.4516,
+              "recall": 0.359,
+              "f1": 0.4,
+              "support": 39
+            },
+            "Default": {
+              "precision": 0.6,
+              "recall": 0.5106,
+              "f1": 0.5517,
+              "support": 47
+            },
+            "Slow Execute": {
+              "precision": 1.0,
+              "recall": 1.0,
+              "f1": 1.0,
+              "support": 100
+            }
+          },
+          "n_samples": 279
+        }
+      }
+    },
+    "test": {
+      "accuracy": 0.665,
+      "balanced_accuracy": 0.5494,
+      "top2_accuracy": 0.8156,
+      "macro_precision": 0.5517,
+      "macro_recall": 0.5494,
+      "macro_f1": 0.5304,
+      "weighted_f1": 0.6702,
+      "confusion_matrix": [
+        [
+          35,
+          31,
+          18,
+          17,
+          1,
+          0
+        ],
+        [
+          4,
+          68,
+          3,
+          18,
+          3,
+          0
+        ],
+        [
+          35,
+          33,
+          61,
+          22,
+          27,
+          0
+        ],
+        [
+          6,
+          58,
+          3,
+          40,
+          15,
+          0
+        ],
+        [
+          9,
+          35,
+          21,
+          30,
+          137,
+          2
+        ],
+        [
+          0,
+          0,
+          0,
+          0,
+          5,
+          445
+        ]
+      ],
+      "per_class": {
+        "A-Site Rush": {
+          "precision": 0.3933,
+          "recall": 0.3431,
+          "f1": 0.3665,
+          "support": 102
+        },
+        "B-Site Rush": {
+          "precision": 0.3022,
+          "recall": 0.7083,
+          "f1": 0.4237,
+          "support": 96
+        },
+        "A Split": {
+          "precision": 0.5755,
+          "recall": 0.3427,
+          "f1": 0.4296,
+          "support": 178
+        },
+        "B Split": {
+          "precision": 0.315,
+          "recall": 0.3279,
+          "f1": 0.3213,
+          "support": 122
+        },
+        "Default": {
+          "precision": 0.7287,
+          "recall": 0.5855,
+          "f1": 0.6493,
+          "support": 234
+        },
+        "Slow Execute": {
+          "precision": 0.9955,
+          "recall": 0.9889,
+          "f1": 0.9922,
+          "support": 450
+        }
+      },
+      "loss": 0.989,
+      "per_map": {
+        "Bind": {
+          "accuracy": 0.64,
+          "balanced_accuracy": 0.5035,
+          "top2_accuracy": 0.8036,
+          "macro_precision": 0.4776,
+          "macro_recall": 0.5035,
+          "macro_f1": 0.4677,
+          "weighted_f1": 0.6357,
+          "confusion_matrix": [
+            [
+              19,
+              10,
+              4,
+              13,
+              0,
+              0
+            ],
+            [
+              0,
+              15,
+              0,
+              6,
+              0,
+              0
+            ],
+            [
+              18,
+              8,
+              2,
+              4,
+              6,
+              0
+            ],
+            [
+              4,
+              6,
+              0,
+              3,
+              2,
+              0
+            ],
+            [
+              2,
+              3,
+              3,
+              8,
+              31,
+              0
+            ],
+            [
+              0,
+              0,
+              0,
+              0,
+              2,
+              106
+            ]
+          ],
+          "per_class": {
+            "A-Site Rush": {
+              "precision": 0.4419,
+              "recall": 0.413,
+              "f1": 0.427,
+              "support": 46
+            },
+            "B-Site Rush": {
+              "precision": 0.3571,
+              "recall": 0.7143,
+              "f1": 0.4762,
+              "support": 21
+            },
+            "A Split": {
+              "precision": 0.2222,
+              "recall": 0.0526,
+              "f1": 0.0851,
+              "support": 38
+            },
+            "B Split": {
+              "precision": 0.0882,
+              "recall": 0.2,
+              "f1": 0.1224,
+              "support": 15
+            },
+            "Default": {
+              "precision": 0.7561,
+              "recall": 0.6596,
+              "f1": 0.7045,
+              "support": 47
+            },
+            "Slow Execute": {
+              "precision": 1.0,
+              "recall": 0.9815,
+              "f1": 0.9907,
+              "support": 108
+            }
+          },
+          "n_samples": 275
+        },
+        "Breeze": {
+          "accuracy": 0.6532,
+          "balanced_accuracy": 0.5761,
+          "top2_accuracy": 0.8347,
+          "macro_precision": 0.5842,
+          "macro_recall": 0.5761,
+          "macro_f1": 0.5616,
+          "weighted_f1": 0.6577,
+          "confusion_matrix": [
+            [
+              7,
+              7,
+              4,
+              0,
+              0,
+              0
+            ],
+            [
+              3,
+              19,
+              0,
+              4,
+              1,
+              0
+            ],
+            [
+              8,
+              7,
+              18,
+              6,
+              7,
+              0
+            ],
+            [
+              1,
+              12,
+              1,
+              13,
+              4,
+              0
+            ],
+            [
+              1,
+              10,
+              3,
+              7,
+              26,
+              0
+            ],
+            [
+              0,
+              0,
+              0,
+              0,
+              0,
+              79
+            ]
+          ],
+          "per_class": {
+            "A-Site Rush": {
+              "precision": 0.35,
+              "recall": 0.3889,
+              "f1": 0.3684,
+              "support": 18
+            },
+            "B-Site Rush": {
+              "precision": 0.3455,
+              "recall": 0.7037,
+              "f1": 0.4634,
+              "support": 27
+            },
+            "A Split": {
+              "precision": 0.6923,
+              "recall": 0.3913,
+              "f1": 0.5,
+              "support": 46
+            },
+            "B Split": {
+              "precision": 0.4333,
+              "recall": 0.4194,
+              "f1": 0.4262,
+              "support": 31
+            },
+            "Default": {
+              "precision": 0.6842,
+              "recall": 0.5532,
+              "f1": 0.6118,
+              "support": 47
+            },
+            "Slow Execute": {
+              "precision": 1.0,
+              "recall": 1.0,
+              "f1": 1.0,
+              "support": 79
+            }
+          },
+          "n_samples": 248
+        },
+        "Fracture": {
+          "accuracy": 0.6139,
+          "balanced_accuracy": 0.4775,
+          "top2_accuracy": 0.7723,
+          "macro_precision": 0.4515,
+          "macro_recall": 0.4775,
+          "macro_f1": 0.4385,
+          "weighted_f1": 0.6162,
+          "confusion_matrix": [
+            [
+              1,
+              0,
+              1,
+              0,
+              0,
+              0
+            ],
+            [
+              0,
+              7,
+              1,
+              4,
+              0,
+              0
+            ],
+            [
+              2,
+              4,
+              6,
+              4,
+              3,
+              0
+            ],
+            [
+              0,
+              7,
+              0,
+              1,
+              3,
+              0
+            ],
+            [
+              2,
+              4,
+              2,
+              2,
+              6,
+              0
+            ],
+            [
+              0,
+              0,
+              0,
+              0,
+              0,
+              41
+            ]
+          ],
+          "per_class": {
+            "A-Site Rush": {
+              "precision": 0.2,
+              "recall": 0.5,
+              "f1": 0.2857,
+              "support": 2
+            },
+            "B-Site Rush": {
+              "precision": 0.3182,
+              "recall": 0.5833,
+              "f1": 0.4118,
+              "support": 12
+            },
+            "A Split": {
+              "precision": 0.6,
+              "recall": 0.3158,
+              "f1": 0.4138,
+              "support": 19
+            },
+            "B Split": {
+              "precision": 0.0909,
+              "recall": 0.0909,
+              "f1": 0.0909,
+              "support": 11
+            },
+            "Default": {
+              "precision": 0.5,
+              "recall": 0.375,
+              "f1": 0.4286,
+              "support": 16
+            },
+            "Slow Execute": {
+              "precision": 1.0,
+              "recall": 1.0,
+              "f1": 1.0,
+              "support": 41
+            }
+          },
+          "n_samples": 101
+        },
+        "Pearl": {
+          "accuracy": 0.6997,
+          "balanced_accuracy": 0.5306,
+          "top2_accuracy": 0.8328,
+          "macro_precision": 0.5251,
+          "macro_recall": 0.5306,
+          "macro_f1": 0.5034,
+          "weighted_f1": 0.7109,
+          "confusion_matrix": [
+            [
+              6,
+              9,
+              3,
+              1,
+              0,
+              0
+            ],
+            [
+              1,
+              8,
+              1,
+              2,
+              1,
+              0
+            ],
+            [
+              6,
+              5,
+              10,
+              3,
+              9,
+              0
+            ],
+            [
+              1,
+              10,
+              2,
+              10,
+              4,
+              0
+            ],
+            [
+              3,
+              11,
+              4,
+              9,
+              41,
+              1
+            ],
+            [
+              0,
+              0,
+              0,
+              0,
+              2,
+              130
+            ]
+          ],
+          "per_class": {
+            "A-Site Rush": {
+              "precision": 0.3529,
+              "recall": 0.3158,
+              "f1": 0.3333,
+              "support": 19
+            },
+            "B-Site Rush": {
+              "precision": 0.186,
+              "recall": 0.6154,
+              "f1": 0.2857,
+              "support": 13
+            },
+            "A Split": {
+              "precision": 0.5,
+              "recall": 0.303,
+              "f1": 0.3774,
+              "support": 33
+            },
+            "B Split": {
+              "precision": 0.4,
+              "recall": 0.3704,
+              "f1": 0.3846,
+              "support": 27
+            },
+            "Default": {
+              "precision": 0.7193,
+              "recall": 0.5942,
+              "f1": 0.6508,
+              "support": 69
+            },
+            "Slow Execute": {
+              "precision": 0.9924,
+              "recall": 0.9848,
+              "f1": 0.9886,
+              "support": 132
+            }
+          },
+          "n_samples": 293
+        },
+        "Split": {
+          "accuracy": 0.683,
+          "balanced_accuracy": 0.5783,
+          "top2_accuracy": 0.8075,
+          "macro_precision": 0.6178,
+          "macro_recall": 0.5783,
+          "macro_f1": 0.5531,
+          "weighted_f1": 0.6834,
+          "confusion_matrix": [
+            [
+              2,
+              5,
+              6,
+              3,
+              1,
+              0
+            ],
+            [
+              0,
+              19,
+              1,
+              2,
+              1,
+              0
+            ],
+            [
+              1,
+              9,
+              25,
+              5,
+              2,
+              0
+            ],
+            [
+              0,
+              23,
+              0,
+              13,
+              2,
+              0
+            ],
+            [
+              1,
+              7,
+              9,
+              4,
+              33,
+              1
+            ],
+            [
+              0,
+              0,
+              0,
+              0,
+              1,
+              89
+            ]
+          ],
+          "per_class": {
+            "A-Site Rush": {
+              "precision": 0.5,
+              "recall": 0.1176,
+              "f1": 0.1905,
+              "support": 17
+            },
+            "B-Site Rush": {
+              "precision": 0.3016,
+              "recall": 0.8261,
+              "f1": 0.4419,
+              "support": 23
+            },
+            "A Split": {
+              "precision": 0.6098,
+              "recall": 0.5952,
+              "f1": 0.6024,
+              "support": 42
+            },
+            "B Split": {
+              "precision": 0.4815,
+              "recall": 0.3421,
+              "f1": 0.4,
+              "support": 38
+            },
+            "Default": {
+              "precision": 0.825,
+              "recall": 0.6,
+              "f1": 0.6947,
+              "support": 55
+            },
+            "Slow Execute": {
+              "precision": 0.9889,
+              "recall": 0.9889,
+              "f1": 0.9889,
+              "support": 90
+            }
+          },
+          "n_samples": 265
+        }
+      }
+    }
+  },
+  "LSTM": {
+    "train_loss_curve": [
+      1.492,
+      1.0358,
+      0.9661,
+      0.9381,
+      0.9067,
+      0.8896,
+      0.8735,
+      0.8698,
+      0.8661,
+      0.8555,
+      0.8493,
+      0.8423,
+      0.8368,
+      0.8286,
+      0.8314,
+      0.8218,
+      0.8168,
+      0.8168,
+      0.8092,
+      0.808,
+      0.8047,
+      0.8024,
+      0.8019,
+      0.7935,
+      0.7895,
+      0.7873,
+      0.7844,
+      0.7776,
+      0.7775,
+      0.7698,
+      0.7684,
+      0.7655,
+      0.7606,
+      0.7529,
+      0.7468,
+      0.742,
+      0.7462,
+      0.7411,
+      0.7346,
+      0.73,
+      0.7329,
+      0.7217,
+      0.7179,
+      0.7103,
+      0.7084,
+      0.7008,
+      0.694,
+      0.688,
+      0.6826,
+      0.6819,
+      0.678,
+      0.6766,
+      0.6624,
+      0.6616
+    ],
+    "val_loss_curve": [
+      1.1074,
+      0.9867,
+      0.9579,
+      0.9113,
+      0.8892,
+      0.8715,
+      0.8691,
+      0.8582,
+      0.85,
+      0.8444,
+      0.8457,
+      0.8409,
+      0.8378,
+      0.8395,
+      0.8345,
+      0.8372,
+      0.8319,
+      0.8331,
+      0.8321,
+      0.8346,
+      0.835,
+      0.8421,
+      0.8326,
+      0.8342,
+      0.8372,
+      0.8342,
+      0.8388,
+      0.8351,
+      0.8308,
+      0.84,
+      0.8418,
+      0.8466,
+      0.8504,
+      0.8372,
+      0.8538,
+      0.858,
+      0.8544,
+      0.8532,
+      0.8494,
+      0.8551,
+      0.858,
+      0.862,
+      0.8751,
+      0.8598,
+      0.8641,
+      0.8754,
+      0.8789,
+      0.8862,
+      0.8733,
+      0.8986,
+      0.8789,
+      0.8865,
+      0.9095,
+      0.8984
+    ],
+    "train_time_s": 29.2909,
+    "class_weights": [
+      1.4535,
+      1.5482,
+      0.8311,
+      1.2087,
+      0.6303,
+      0.3281
+    ],
+    "validation": {
+      "accuracy": 0.7174,
+      "balanced_accuracy": 0.6212,
+      "top2_accuracy": 0.8672,
+      "macro_precision": 0.6103,
+      "macro_recall": 0.6212,
+      "macro_f1": 0.603,
+      "weighted_f1": 0.7198,
+      "confusion_matrix": [
+        [
+          55,
+          12,
+          13,
+          14,
+          8,
+          0
+        ],
+        [
+          16,
+          60,
+          2,
+          13,
+          4,
+          0
+        ],
+        [
+          36,
+          22,
+          66,
+          30,
+          24,
+          0
+        ],
+        [
+          5,
+          30,
+          7,
+          67,
+          14,
+          0
+        ],
+        [
+          21,
+          22,
+          15,
+          26,
+          150,
+          0
+        ],
+        [
+          0,
+          0,
+          0,
+          0,
+          0,
+          450
+        ]
+      ],
+      "per_class": {
+        "A-Site Rush": {
+          "precision": 0.4135,
+          "recall": 0.5392,
+          "f1": 0.4681,
+          "support": 102
+        },
+        "B-Site Rush": {
+          "precision": 0.411,
+          "recall": 0.6316,
+          "f1": 0.4979,
+          "support": 95
+        },
+        "A Split": {
+          "precision": 0.6408,
+          "recall": 0.3708,
+          "f1": 0.4698,
+          "support": 178
+        },
+        "B Split": {
+          "precision": 0.4467,
+          "recall": 0.5447,
+          "f1": 0.4908,
+          "support": 123
+        },
+        "Default": {
+          "precision": 0.75,
+          "recall": 0.641,
+          "f1": 0.6912,
+          "support": 234
+        },
+        "Slow Execute": {
+          "precision": 1.0,
+          "recall": 1.0,
+          "f1": 1.0,
+          "support": 450
+        }
+      },
+      "loss": 0.8308,
+      "early_round_accuracy": {
+        "5s": 0.5745,
+        "10s": 0.5778,
+        "15s": 0.6345,
+        "20s": 0.6523,
+        "25s": 0.6802,
+        "30s": 0.7174
+      },
+      "per_map": {
+        "Bind": {
+          "accuracy": 0.7343,
+          "balanced_accuracy": 0.6005,
+          "top2_accuracy": 0.8708,
+          "macro_precision": 0.5895,
+          "macro_recall": 0.6005,
+          "macro_f1": 0.5766,
+          "weighted_f1": 0.7419,
+          "confusion_matrix": [
+            [
+              26,
+              3,
+              4,
+              10,
+              3,
+              0
+            ],
+            [
+              2,
+              12,
+              1,
+              1,
+              1,
+              0
+            ],
+            [
+              7,
+              5,
+              7,
+              5,
+              3,
+              0
+            ],
+            [
+              1,
+              7,
+              0,
+              6,
+              1,
+              0
+            ],
+            [
+              5,
+              2,
+              3,
+              8,
+              37,
+              0
+            ],
+            [
+              0,
+              0,
+              0,
+              0,
+              0,
+              111
+            ]
+          ],
+          "per_class": {
+            "A-Site Rush": {
+              "precision": 0.6341,
+              "recall": 0.5652,
+              "f1": 0.5977,
+              "support": 46
+            },
+            "B-Site Rush": {
+              "precision": 0.4138,
+              "recall": 0.7059,
+              "f1": 0.5217,
+              "support": 17
+            },
+            "A Split": {
+              "precision": 0.4667,
+              "recall": 0.2593,
+              "f1": 0.3333,
+              "support": 27
+            },
+            "B Split": {
+              "precision": 0.2,
+              "recall": 0.4,
+              "f1": 0.2667,
+              "support": 15
+            },
+            "Default": {
+              "precision": 0.8222,
+              "recall": 0.6727,
+              "f1": 0.74,
+              "support": 55
+            },
+            "Slow Execute": {
+              "precision": 1.0,
+              "recall": 1.0,
+              "f1": 1.0,
+              "support": 111
+            }
+          },
+          "n_samples": 271
+        },
+        "Breeze": {
+          "accuracy": 0.6929,
+          "balanced_accuracy": 0.5981,
+          "top2_accuracy": 0.8631,
+          "macro_precision": 0.5902,
+          "macro_recall": 0.5981,
+          "macro_f1": 0.5809,
+          "weighted_f1": 0.6926,
+          "confusion_matrix": [
+            [
+              5,
+              4,
+              4,
+              1,
+              1,
+              0
+            ],
+            [
+              0,
+              14,
+              0,
+              5,
+              2,
+              0
+            ],
+            [
+              6,
+              5,
+              17,
+              13,
+              5,
+              0
+            ],
+            [
+              1,
+              5,
+              4,
+              19,
+              3,
+              0
+            ],
+            [
+              3,
+              4,
+              1,
+              7,
+              25,
+              0
+            ],
+            [
+              0,
+              0,
+              0,
+              0,
+              0,
+              87
+            ]
+          ],
+          "per_class": {
+            "A-Site Rush": {
+              "precision": 0.3333,
+              "recall": 0.3333,
+              "f1": 0.3333,
+              "support": 15
+            },
+            "B-Site Rush": {
+              "precision": 0.4375,
+              "recall": 0.6667,
+              "f1": 0.5283,
+              "support": 21
+            },
+            "A Split": {
+              "precision": 0.6538,
+              "recall": 0.3696,
+              "f1": 0.4722,
+              "support": 46
+            },
+            "B Split": {
+              "precision": 0.4222,
+              "recall": 0.5938,
+              "f1": 0.4935,
+              "support": 32
+            },
+            "Default": {
+              "precision": 0.6944,
+              "recall": 0.625,
+              "f1": 0.6579,
+              "support": 40
+            },
+            "Slow Execute": {
+              "precision": 1.0,
+              "recall": 1.0,
+              "f1": 1.0,
+              "support": 87
+            }
+          },
+          "n_samples": 241
+        },
+        "Fracture": {
+          "accuracy": 0.5865,
+          "balanced_accuracy": 0.4743,
+          "top2_accuracy": 0.7788,
+          "macro_precision": 0.5033,
+          "macro_recall": 0.4743,
+          "macro_f1": 0.4462,
+          "weighted_f1": 0.5872,
+          "confusion_matrix": [
+            [
+              2,
+              0,
+              0,
+              1,
+              2,
+              0
+            ],
+            [
+              2,
+              2,
+              1,
+              3,
+              1,
+              0
+            ],
+            [
+              6,
+              2,
+              4,
+              4,
+              5,
+              0
+            ],
+            [
+              0,
+              6,
+              0,
+              9,
+              1,
+              0
+            ],
+            [
+              3,
+              2,
+              0,
+              4,
+              8,
+              0
+            ],
+            [
+              0,
+              0,
+              0,
+              0,
+              0,
+              36
+            ]
+          ],
+          "per_class": {
+            "A-Site Rush": {
+              "precision": 0.1538,
+              "recall": 0.4,
+              "f1": 0.2222,
+              "support": 5
+            },
+            "B-Site Rush": {
+              "precision": 0.1667,
+              "recall": 0.2222,
+              "f1": 0.1905,
+              "support": 9
+            },
+            "A Split": {
+              "precision": 0.8,
+              "recall": 0.1905,
+              "f1": 0.3077,
+              "support": 21
+            },
+            "B Split": {
+              "precision": 0.4286,
+              "recall": 0.5625,
+              "f1": 0.4865,
+              "support": 16
+            },
+            "Default": {
+              "precision": 0.4706,
+              "recall": 0.4706,
+              "f1": 0.4706,
+              "support": 17
+            },
+            "Slow Execute": {
+              "precision": 1.0,
+              "recall": 1.0,
+              "f1": 1.0,
+              "support": 36
+            }
+          },
+          "n_samples": 104
+        },
+        "Pearl": {
+          "accuracy": 0.7666,
+          "balanced_accuracy": 0.6794,
+          "top2_accuracy": 0.8815,
+          "macro_precision": 0.6402,
+          "macro_recall": 0.6794,
+          "macro_f1": 0.64,
+          "weighted_f1": 0.7708,
+          "confusion_matrix": [
+            [
+              14,
+              2,
+              2,
+              1,
+              1,
+              0
+            ],
+            [
+              5,
+              14,
+              0,
+              1,
+              0,
+              0
+            ],
+            [
+              10,
+              4,
+              12,
+              4,
+              5,
+              0
+            ],
+            [
+              0,
+              4,
+              1,
+              14,
+              2,
+              0
+            ],
+            [
+              6,
+              9,
+              6,
+              4,
+              50,
+              0
+            ],
+            [
+              0,
+              0,
+              0,
+              0,
+              0,
+              116
+            ]
+          ],
+          "per_class": {
+            "A-Site Rush": {
+              "precision": 0.4,
+              "recall": 0.7,
+              "f1": 0.5091,
+              "support": 20
+            },
+            "B-Site Rush": {
+              "precision": 0.4242,
+              "recall": 0.7,
+              "f1": 0.5283,
+              "support": 20
+            },
+            "A Split": {
+              "precision": 0.5714,
+              "recall": 0.3429,
+              "f1": 0.4286,
+              "support": 35
+            },
+            "B Split": {
+              "precision": 0.5833,
+              "recall": 0.6667,
+              "f1": 0.6222,
+              "support": 21
+            },
+            "Default": {
+              "precision": 0.8621,
+              "recall": 0.6667,
+              "f1": 0.7519,
+              "support": 75
+            },
+            "Slow Execute": {
+              "precision": 1.0,
+              "recall": 1.0,
+              "f1": 1.0,
+              "support": 116
+            }
+          },
+          "n_samples": 287
+        },
+        "Split": {
+          "accuracy": 0.7204,
+          "balanced_accuracy": 0.6332,
+          "top2_accuracy": 0.8853,
+          "macro_precision": 0.6272,
+          "macro_recall": 0.6332,
+          "macro_f1": 0.6178,
+          "weighted_f1": 0.7274,
+          "confusion_matrix": [
+            [
+              8,
+              3,
+              3,
+              1,
+              1,
+              0
+            ],
+            [
+              7,
+              18,
+              0,
+              3,
+              0,
+              0
+            ],
+            [
+              7,
+              6,
+              26,
+              4,
+              6,
+              0
+            ],
+            [
+              3,
+              8,
+              2,
+              19,
+              7,
+              0
+            ],
+            [
+              4,
+              5,
+              5,
+              3,
+              30,
+              0
+            ],
+            [
+              0,
+              0,
+              0,
+              0,
+              0,
+              100
+            ]
+          ],
+          "per_class": {
+            "A-Site Rush": {
+              "precision": 0.2759,
+              "recall": 0.5,
+              "f1": 0.3556,
+              "support": 16
+            },
+            "B-Site Rush": {
+              "precision": 0.45,
+              "recall": 0.6429,
+              "f1": 0.5294,
+              "support": 28
+            },
+            "A Split": {
+              "precision": 0.7222,
+              "recall": 0.5306,
+              "f1": 0.6118,
+              "support": 49
+            },
+            "B Split": {
+              "precision": 0.6333,
+              "recall": 0.4872,
+              "f1": 0.5507,
+              "support": 39
+            },
+            "Default": {
+              "precision": 0.6818,
+              "recall": 0.6383,
+              "f1": 0.6593,
+              "support": 47
+            },
+            "Slow Execute": {
+              "precision": 1.0,
+              "recall": 1.0,
+              "f1": 1.0,
+              "support": 100
+            }
+          },
+          "n_samples": 279
+        }
+      }
+    },
+    "test": {
+      "accuracy": 0.714,
+      "balanced_accuracy": 0.6164,
+      "top2_accuracy": 0.8731,
+      "macro_precision": 0.6073,
+      "macro_recall": 0.6164,
+      "macro_f1": 0.5973,
+      "weighted_f1": 0.7164,
+      "confusion_matrix": [
+        [
+          51,
+          18,
+          11,
+          8,
+          14,
+          0
+        ],
+        [
+          8,
+          65,
+          3,
+          16,
+          4,
+          0
+        ],
+        [
+          34,
+          30,
+          64,
+          29,
+          21,
+          0
+        ],
+        [
+          4,
+          39,
+          6,
+          63,
+          10,
+          0
+        ],
+        [
+          19,
+          23,
+          19,
+          22,
+          151,
+          0
+        ],
+        [
+          0,
+          0,
+          0,
+          0,
+          0,
+          450
+        ]
+      ],
+      "per_class": {
+        "A-Site Rush": {
+          "precision": 0.4397,
+          "recall": 0.5,
+          "f1": 0.4679,
+          "support": 102
+        },
+        "B-Site Rush": {
+          "precision": 0.3714,
+          "recall": 0.6771,
+          "f1": 0.4797,
+          "support": 96
+        },
+        "A Split": {
+          "precision": 0.6214,
+          "recall": 0.3596,
+          "f1": 0.4555,
+          "support": 178
+        },
+        "B Split": {
+          "precision": 0.4565,
+          "recall": 0.5164,
+          "f1": 0.4846,
+          "support": 122
+        },
+        "Default": {
+          "precision": 0.755,
+          "recall": 0.6453,
+          "f1": 0.6959,
+          "support": 234
+        },
+        "Slow Execute": {
+          "precision": 1.0,
+          "recall": 1.0,
+          "f1": 1.0,
+          "support": 450
+        }
+      },
+      "loss": 0.8722,
+      "early_round_accuracy": {
+        "5s": 0.5618,
+        "10s": 0.5787,
+        "15s": 0.6201,
+        "20s": 0.643,
+        "25s": 0.6853,
+        "30s": 0.714
+      },
+      "per_map": {
+        "Bind": {
+          "accuracy": 0.6909,
+          "balanced_accuracy": 0.5623,
+          "top2_accuracy": 0.8691,
+          "macro_precision": 0.5508,
+          "macro_recall": 0.5623,
+          "macro_f1": 0.532,
+          "weighted_f1": 0.6846,
+          "confusion_matrix": [
+            [
+              23,
+              6,
+              4,
+              5,
+              8,
+              0
+            ],
+            [
+              1,
+              12,
+              0,
+              6,
+              2,
+              0
+            ],
+            [
+              12,
+              8,
+              6,
+              8,
+              4,
+              0
+            ],
+            [
+              2,
+              5,
+              1,
+              6,
+              1,
+              0
+            ],
+            [
+              4,
+              4,
+              1,
+              3,
+              35,
+              0
+            ],
+            [
+              0,
+              0,
+              0,
+              0,
+              0,
+              108
+            ]
+          ],
+          "per_class": {
+            "A-Site Rush": {
+              "precision": 0.5476,
+              "recall": 0.5,
+              "f1": 0.5227,
+              "support": 46
+            },
+            "B-Site Rush": {
+              "precision": 0.3429,
+              "recall": 0.5714,
+              "f1": 0.4286,
+              "support": 21
+            },
+            "A Split": {
+              "precision": 0.5,
+              "recall": 0.1579,
+              "f1": 0.24,
+              "support": 38
+            },
+            "B Split": {
+              "precision": 0.2143,
+              "recall": 0.4,
+              "f1": 0.2791,
+              "support": 15
+            },
+            "Default": {
+              "precision": 0.7,
+              "recall": 0.7447,
+              "f1": 0.7216,
+              "support": 47
+            },
+            "Slow Execute": {
+              "precision": 1.0,
+              "recall": 1.0,
+              "f1": 1.0,
+              "support": 108
+            }
+          },
+          "n_samples": 275
+        },
+        "Breeze": {
+          "accuracy": 0.6895,
+          "balanced_accuracy": 0.6324,
+          "top2_accuracy": 0.8952,
+          "macro_precision": 0.6241,
+          "macro_recall": 0.6324,
+          "macro_f1": 0.6103,
+          "weighted_f1": 0.6931,
+          "confusion_matrix": [
+            [
+              10,
+              3,
+              2,
+              1,
+              2,
+              0
+            ],
+            [
+              3,
+              19,
+              0,
+              4,
+              1,
+              0
+            ],
+            [
+              10,
+              6,
+              18,
+              9,
+              3,
+              0
+            ],
+            [
+              1,
+              10,
+              1,
+              17,
+              2,
+              0
+            ],
+            [
+              3,
+              6,
+              5,
+              5,
+              28,
+              0
+            ],
+            [
+              0,
+              0,
+              0,
+              0,
+              0,
+              79
+            ]
+          ],
+          "per_class": {
+            "A-Site Rush": {
+              "precision": 0.3704,
+              "recall": 0.5556,
+              "f1": 0.4444,
+              "support": 18
+            },
+            "B-Site Rush": {
+              "precision": 0.4318,
+              "recall": 0.7037,
+              "f1": 0.5352,
+              "support": 27
+            },
+            "A Split": {
+              "precision": 0.6923,
+              "recall": 0.3913,
+              "f1": 0.5,
+              "support": 46
+            },
+            "B Split": {
+              "precision": 0.4722,
+              "recall": 0.5484,
+              "f1": 0.5075,
+              "support": 31
+            },
+            "Default": {
+              "precision": 0.7778,
+              "recall": 0.5957,
+              "f1": 0.6747,
+              "support": 47
+            },
+            "Slow Execute": {
+              "precision": 1.0,
+              "recall": 1.0,
+              "f1": 1.0,
+              "support": 79
+            }
+          },
+          "n_samples": 248
+        },
+        "Fracture": {
+          "accuracy": 0.703,
+          "balanced_accuracy": 0.5959,
+          "top2_accuracy": 0.8218,
+          "macro_precision": 0.5718,
+          "macro_recall": 0.5959,
+          "macro_f1": 0.5423,
+          "weighted_f1": 0.7057,
+          "confusion_matrix": [
+            [
+              1,
+              0,
+              0,
+              0,
+              1,
+              0
+            ],
+            [
+              0,
+              10,
+              1,
+              1,
+              0,
+              0
+            ],
+            [
+              4,
+              3,
+              6,
+              4,
+              2,
+              0
+            ],
+            [
+              0,
+              6,
+              0,
+              4,
+              1,
+              0
+            ],
+            [
+              3,
+              1,
+              1,
+              2,
+              9,
+              0
+            ],
+            [
+              0,
+              0,
+              0,
+              0,
+              0,
+              41
+            ]
+          ],
+          "per_class": {
+            "A-Site Rush": {
+              "precision": 0.125,
+              "recall": 0.5,
+              "f1": 0.2,
+              "support": 2
+            },
+            "B-Site Rush": {
+              "precision": 0.5,
+              "recall": 0.8333,
+              "f1": 0.625,
+              "support": 12
+            },
+            "A Split": {
+              "precision": 0.75,
+              "recall": 0.3158,
+              "f1": 0.4444,
+              "support": 19
+            },
+            "B Split": {
+              "precision": 0.3636,
+              "recall": 0.3636,
+              "f1": 0.3636,
+              "support": 11
+            },
+            "Default": {
+              "precision": 0.6923,
+              "recall": 0.5625,
+              "f1": 0.6207,
+              "support": 16
+            },
+            "Slow Execute": {
+              "precision": 1.0,
+              "recall": 1.0,
+              "f1": 1.0,
+              "support": 41
+            }
+          },
+          "n_samples": 101
+        },
+        "Pearl": {
+          "accuracy": 0.7474,
+          "balanced_accuracy": 0.6023,
+          "top2_accuracy": 0.8703,
+          "macro_precision": 0.5711,
+          "macro_recall": 0.6023,
+          "macro_f1": 0.5787,
+          "weighted_f1": 0.75,
+          "confusion_matrix": [
+            [
+              10,
+              4,
+              3,
+              1,
+              1,
+              0
+            ],
+            [
+              0,
+              7,
+              2,
+              4,
+              0,
+              0
+            ],
+            [
+              5,
+              3,
+              11,
+              4,
+              10,
+              0
+            ],
+            [
+              1,
+              1,
+              4,
+              16,
+              5,
+              0
+            ],
+            [
+              6,
+              7,
+              5,
+              8,
+              43,
+              0
+            ],
+            [
+              0,
+              0,
+              0,
+              0,
+              0,
+              132
+            ]
+          ],
+          "per_class": {
+            "A-Site Rush": {
+              "precision": 0.4545,
+              "recall": 0.5263,
+              "f1": 0.4878,
+              "support": 19
+            },
+            "B-Site Rush": {
+              "precision": 0.3182,
+              "recall": 0.5385,
+              "f1": 0.4,
+              "support": 13
+            },
+            "A Split": {
+              "precision": 0.44,
+              "recall": 0.3333,
+              "f1": 0.3793,
+              "support": 33
+            },
+            "B Split": {
+              "precision": 0.4848,
+              "recall": 0.5926,
+              "f1": 0.5333,
+              "support": 27
+            },
+            "Default": {
+              "precision": 0.7288,
+              "recall": 0.6232,
+              "f1": 0.6719,
+              "support": 69
+            },
+            "Slow Execute": {
+              "precision": 1.0,
+              "recall": 1.0,
+              "f1": 1.0,
+              "support": 132
+            }
+          },
+          "n_samples": 293
+        },
+        "Split": {
+          "accuracy": 0.7283,
+          "balanced_accuracy": 0.6466,
+          "top2_accuracy": 0.8792,
+          "macro_precision": 0.6615,
+          "macro_recall": 0.6466,
+          "macro_f1": 0.6342,
+          "weighted_f1": 0.7413,
+          "confusion_matrix": [
+            [
+              7,
+              5,
+              2,
+              1,
+              2,
+              0
+            ],
+            [
+              4,
+              17,
+              0,
+              1,
+              1,
+              0
+            ],
+            [
+              3,
+              10,
+              23,
+              4,
+              2,
+              0
+            ],
+            [
+              0,
+              17,
+              0,
+              20,
+              1,
+              0
+            ],
+            [
+              3,
+              5,
+              7,
+              4,
+              36,
+              0
+            ],
+            [
+              0,
+              0,
+              0,
+              0,
+              0,
+              90
+            ]
+          ],
+          "per_class": {
+            "A-Site Rush": {
+              "precision": 0.4118,
+              "recall": 0.4118,
+              "f1": 0.4118,
+              "support": 17
+            },
+            "B-Site Rush": {
+              "precision": 0.3148,
+              "recall": 0.7391,
+              "f1": 0.4416,
+              "support": 23
+            },
+            "A Split": {
+              "precision": 0.7188,
+              "recall": 0.5476,
+              "f1": 0.6216,
+              "support": 42
+            },
+            "B Split": {
+              "precision": 0.6667,
+              "recall": 0.5263,
+              "f1": 0.5882,
+              "support": 38
+            },
+            "Default": {
+              "precision": 0.8571,
+              "recall": 0.6545,
+              "f1": 0.7423,
+              "support": 55
+            },
+            "Slow Execute": {
+              "precision": 1.0,
+              "recall": 1.0,
+              "f1": 1.0,
+              "support": 90
+            }
+          },
+          "n_samples": 265
+        }
+      }
+    }
+  },
+  "GRU": {
+    "train_loss_curve": [
+      1.3995,
+      1.032,
+      0.9657,
+      0.9376,
+      0.9227,
+      0.9141,
+      0.8903,
+      0.8926,
+      0.8795,
+      0.872,
+      0.8665,
+      0.8545,
+      0.8527,
+      0.8501,
+      0.8501,
+      0.8412,
+      0.8387,
+      0.8352,
+      0.8353,
+      0.8352,
+      0.8293,
+      0.8314,
+      0.8229,
+      0.8185,
+      0.8187,
+      0.8146,
+      0.8133,
+      0.8117,
+      0.8165,
+      0.8068,
+      0.8066,
+      0.8099,
+      0.8008,
+      0.7979,
+      0.7941,
+      0.7937,
+      0.7899,
+      0.785,
+      0.7857,
+      0.7816,
+      0.7778,
+      0.7855,
+      0.7784,
+      0.7734,
+      0.7672,
+      0.7694,
+      0.7633,
+      0.7558,
+      0.7542,
+      0.7567,
+      0.7473,
+      0.754,
+      0.7452,
+      0.7452,
+      0.7472,
+      0.7396,
+      0.7333,
+      0.7261
+    ],
+    "val_loss_curve": [
+      1.0769,
+      0.9693,
+      0.9429,
+      0.9196,
+      0.8981,
+      0.8819,
+      0.8725,
+      0.8627,
+      0.8609,
+      0.8551,
+      0.8435,
+      0.8603,
+      0.8471,
+      0.8494,
+      0.8401,
+      0.8369,
+      0.8368,
+      0.8251,
+      0.8249,
+      0.8278,
+      0.8244,
+      0.8246,
+      0.8227,
+      0.8231,
+      0.8255,
+      0.822,
+      0.8158,
+      0.8166,
+      0.8123,
+      0.8155,
+      0.8158,
+      0.8165,
+      0.81,
+      0.8137,
+      0.8144,
+      0.813,
+      0.8181,
+      0.8211,
+      0.8184,
+      0.8147,
+      0.8165,
+      0.8196,
+      0.8163,
+      0.8215,
+      0.8263,
+      0.8197,
+      0.831,
+      0.8357,
+      0.8283,
+      0.8377,
+      0.8283,
+      0.8309,
+      0.8357,
+      0.8329,
+      0.8332,
+      0.8356,
+      0.8422,
+      0.8465
+    ],
+    "train_time_s": 45.2012,
+    "class_weights": [
+      1.4535,
+      1.5482,
+      0.8311,
+      1.2087,
+      0.6303,
+      0.3281
+    ],
+    "validation": {
+      "accuracy": 0.7293,
+      "balanced_accuracy": 0.6317,
+      "top2_accuracy": 0.8832,
+      "macro_precision": 0.6296,
+      "macro_recall": 0.6317,
+      "macro_f1": 0.6192,
+      "weighted_f1": 0.7317,
+      "confusion_matrix": [
+        [
+          57,
+          6,
+          15,
+          17,
+          7,
+          0
+        ],
+        [
+          14,
+          49,
+          1,
+          23,
+          8,
+          0
+        ],
+        [
+          28,
+          11,
+          74,
+          40,
+          25,
+          0
+        ],
+        [
+          6,
+          18,
+          4,
+          80,
+          15,
+          0
+        ],
+        [
+          24,
+          19,
+          12,
+          27,
+          152,
+          0
+        ],
+        [
+          0,
+          0,
+          0,
+          0,
+          0,
+          450
+        ]
+      ],
+      "per_class": {
+        "A-Site Rush": {
+          "precision": 0.4419,
+          "recall": 0.5588,
+          "f1": 0.4935,
+          "support": 102
+        },
+        "B-Site Rush": {
+          "precision": 0.4757,
+          "recall": 0.5158,
+          "f1": 0.4949,
+          "support": 95
+        },
+        "A Split": {
+          "precision": 0.6981,
+          "recall": 0.4157,
+          "f1": 0.5211,
+          "support": 178
+        },
+        "B Split": {
+          "precision": 0.4278,
+          "recall": 0.6504,
+          "f1": 0.5161,
+          "support": 123
+        },
+        "Default": {
+          "precision": 0.7343,
+          "recall": 0.6496,
+          "f1": 0.6893,
+          "support": 234
+        },
+        "Slow Execute": {
+          "precision": 1.0,
+          "recall": 1.0,
+          "f1": 1.0,
+          "support": 450
+        }
+      },
+      "loss": 0.81,
+      "early_round_accuracy": {
+        "5s": 0.5812,
+        "10s": 0.5964,
+        "15s": 0.6227,
+        "20s": 0.6489,
+        "25s": 0.6794,
+        "30s": 0.7293
+      },
+      "per_map": {
+        "Bind": {
+          "accuracy": 0.7417,
+          "balanced_accuracy": 0.6137,
+          "top2_accuracy": 0.8856,
+          "macro_precision": 0.611,
+          "macro_recall": 0.6137,
+          "macro_f1": 0.602,
+          "weighted_f1": 0.7529,
+          "confusion_matrix": [
+            [
+              26,
+              1,
+              7,
+              10,
+              2,
+              0
+            ],
+            [
+              0,
+              10,
+              1,
+              2,
+              4,
+              0
+            ],
+            [
+              5,
+              2,
+              11,
+              6,
+              3,
+              0
+            ],
+            [
+              3,
+              3,
+              1,
+              7,
+              1,
+              0
+            ],
+            [
+              5,
+              3,
+              3,
+              8,
+              36,
+              0
+            ],
+            [
+              0,
+              0,
+              0,
+              0,
+              0,
+              111
+            ]
+          ],
+          "per_class": {
+            "A-Site Rush": {
+              "precision": 0.6667,
+              "recall": 0.5652,
+              "f1": 0.6118,
+              "support": 46
+            },
+            "B-Site Rush": {
+              "precision": 0.5263,
+              "recall": 0.5882,
+              "f1": 0.5556,
+              "support": 17
+            },
+            "A Split": {
+              "precision": 0.4783,
+              "recall": 0.4074,
+              "f1": 0.44,
+              "support": 27
+            },
+            "B Split": {
+              "precision": 0.2121,
+              "recall": 0.4667,
+              "f1": 0.2917,
+              "support": 15
+            },
+            "Default": {
+              "precision": 0.7826,
+              "recall": 0.6545,
+              "f1": 0.7129,
+              "support": 55
+            },
+            "Slow Execute": {
+              "precision": 1.0,
+              "recall": 1.0,
+              "f1": 1.0,
+              "support": 111
+            }
+          },
+          "n_samples": 271
+        },
+        "Breeze": {
+          "accuracy": 0.7137,
+          "balanced_accuracy": 0.6166,
+          "top2_accuracy": 0.8838,
+          "macro_precision": 0.625,
+          "macro_recall": 0.6166,
+          "macro_f1": 0.6046,
+          "weighted_f1": 0.7099,
+          "confusion_matrix": [
+            [
+              5,
+              2,
+              4,
+              3,
+              1,
+              0
+            ],
+            [
+              0,
+              12,
+              0,
+              7,
+              2,
+              0
+            ],
+            [
+              4,
+              2,
+              17,
+              16,
+              7,
+              0
+            ],
+            [
+              1,
+              2,
+              2,
+              24,
+              3,
+              0
+            ],
+            [
+              3,
+              4,
+              1,
+              5,
+              27,
+              0
+            ],
+            [
+              0,
+              0,
+              0,
+              0,
+              0,
+              87
+            ]
+          ],
+          "per_class": {
+            "A-Site Rush": {
+              "precision": 0.3846,
+              "recall": 0.3333,
+              "f1": 0.3571,
+              "support": 15
+            },
+            "B-Site Rush": {
+              "precision": 0.5455,
+              "recall": 0.5714,
+              "f1": 0.5581,
+              "support": 21
+            },
+            "A Split": {
+              "precision": 0.7083,
+              "recall": 0.3696,
+              "f1": 0.4857,
+              "support": 46
+            },
+            "B Split": {
+              "precision": 0.4364,
+              "recall": 0.75,
+              "f1": 0.5517,
+              "support": 32
+            },
+            "Default": {
+              "precision": 0.675,
+              "recall": 0.675,
+              "f1": 0.675,
+              "support": 40
+            },
+            "Slow Execute": {
+              "precision": 1.0,
+              "recall": 1.0,
+              "f1": 1.0,
+              "support": 87
+            }
+          },
+          "n_samples": 241
+        },
+        "Fracture": {
+          "accuracy": 0.6442,
+          "balanced_accuracy": 0.5393,
+          "top2_accuracy": 0.8269,
+          "macro_precision": 0.5886,
+          "macro_recall": 0.5393,
+          "macro_f1": 0.5169,
+          "weighted_f1": 0.6488,
+          "confusion_matrix": [
+            [
+              2,
+              0,
+              0,
+              1,
+              2,
+              0
+            ],
+            [
+              2,
+              3,
+              0,
+              3,
+              1,
+              0
+            ],
+            [
+              6,
+              0,
+              6,
+              6,
+              3,
+              0
+            ],
+            [
+              0,
+              4,
+              0,
+              11,
+              1,
+              0
+            ],
+            [
+              3,
+              1,
+              0,
+              4,
+              9,
+              0
+            ],
+            [
+              0,
+              0,
+              0,
+              0,
+              0,
+              36
+            ]
+          ],
+          "per_class": {
+            "A-Site Rush": {
+              "precision": 0.1538,
+              "recall": 0.4,
+              "f1": 0.2222,
+              "support": 5
+            },
+            "B-Site Rush": {
+              "precision": 0.375,
+              "recall": 0.3333,
+              "f1": 0.3529,
+              "support": 9
+            },
+            "A Split": {
+              "precision": 1.0,
+              "recall": 0.2857,
+              "f1": 0.4444,
+              "support": 21
+            },
+            "B Split": {
+              "precision": 0.44,
+              "recall": 0.6875,
+              "f1": 0.5366,
+              "support": 16
+            },
+            "Default": {
+              "precision": 0.5625,
+              "recall": 0.5294,
+              "f1": 0.5455,
+              "support": 17
+            },
+            "Slow Execute": {
+              "precision": 1.0,
+              "recall": 1.0,
+              "f1": 1.0,
+              "support": 36
+            }
+          },
+          "n_samples": 104
+        },
+        "Pearl": {
+          "accuracy": 0.7596,
+          "balanced_accuracy": 0.6656,
+          "top2_accuracy": 0.899,
+          "macro_precision": 0.6349,
+          "macro_recall": 0.6656,
+          "macro_f1": 0.628,
+          "weighted_f1": 0.7632,
+          "confusion_matrix": [
+            [
+              16,
+              1,
+              1,
+              1,
+              1,
+              0
+            ],
+            [
+              5,
+              11,
+              0,
+              3,
+              1,
+              0
+            ],
+            [
+              7,
+              3,
+              13,
+              6,
+              6,
+              0
+            ],
+            [
+              0,
+              5,
+              0,
+              13,
+              3,
+              0
+            ],
+            [
+              10,
+              6,
+              5,
+              5,
+              49,
+              0
+            ],
+            [
+              0,
+              0,
+              0,
+              0,
+              0,
+              116
+            ]
+          ],
+          "per_class": {
+            "A-Site Rush": {
+              "precision": 0.4211,
+              "recall": 0.8,
+              "f1": 0.5517,
+              "support": 20
+            },
+            "B-Site Rush": {
+              "precision": 0.4231,
+              "recall": 0.55,
+              "f1": 0.4783,
+              "support": 20
+            },
+            "A Split": {
+              "precision": 0.6842,
+              "recall": 0.3714,
+              "f1": 0.4815,
+              "support": 35
+            },
+            "B Split": {
+              "precision": 0.4643,
+              "recall": 0.619,
+              "f1": 0.5306,
+              "support": 21
+            },
+            "Default": {
+              "precision": 0.8167,
+              "recall": 0.6533,
+              "f1": 0.7259,
+              "support": 75
+            },
+            "Slow Execute": {
+              "precision": 1.0,
+              "recall": 1.0,
+              "f1": 1.0,
+              "support": 116
+            }
+          },
+          "n_samples": 287
+        },
+        "Split": {
+          "accuracy": 0.7312,
+          "balanced_accuracy": 0.636,
+          "top2_accuracy": 0.8853,
+          "macro_precision": 0.6331,
+          "macro_recall": 0.636,
+          "macro_f1": 0.6263,
+          "weighted_f1": 0.7369,
+          "confusion_matrix": [
+            [
+              8,
+              2,
+              3,
+              2,
+              1,
+              0
+            ],
+            [
+              7,
+              13,
+              0,
+              8,
+              0,
+              0
+            ],
+            [
+              6,
+              4,
+              27,
+              6,
+              6,
+              0
+            ],
+            [
+              2,
+              4,
+              1,
+              25,
+              7,
+              0
+            ],
+            [
+              3,
+              5,
+              3,
+              5,
+              31,
+              0
+            ],
+            [
+              0,
+              0,
+              0,
+              0,
+              0,
+              100
+            ]
+          ],
+          "per_class": {
+            "A-Site Rush": {
+              "precision": 0.3077,
+              "recall": 0.5,
+              "f1": 0.381,
+              "support": 16
+            },
+            "B-Site Rush": {
+              "precision": 0.4643,
+              "recall": 0.4643,
+              "f1": 0.4643,
+              "support": 28
+            },
+            "A Split": {
+              "precision": 0.7941,
+              "recall": 0.551,
+              "f1": 0.6506,
+              "support": 49
+            },
+            "B Split": {
+              "precision": 0.5435,
+              "recall": 0.641,
+              "f1": 0.5882,
+              "support": 39
+            },
+            "Default": {
+              "precision": 0.6889,
+              "recall": 0.6596,
+              "f1": 0.6739,
+              "support": 47
+            },
+            "Slow Execute": {
+              "precision": 1.0,
+              "recall": 1.0,
+              "f1": 1.0,
+              "support": 100
+            }
+          },
+          "n_samples": 279
+        }
+      }
+    },
+    "test": {
+      "accuracy": 0.7183,
+      "balanced_accuracy": 0.6094,
+      "top2_accuracy": 0.8782,
+      "macro_precision": 0.6058,
+      "macro_recall": 0.6094,
+      "macro_f1": 0.5977,
+      "weighted_f1": 0.7202,
+      "confusion_matrix": [
+        [
+          46,
+          11,
+          16,
+          13,
+          16,
+          0
+        ],
+        [
+          14,
+          52,
+          3,
+          22,
+          5,
+          0
+        ],
+        [
+          27,
+          22,
+          69,
+          36,
+          24,
+          0
+        ],
+        [
+          7,
+          24,
+          6,
+          72,
+          13,
+          0
+        ],
+        [
+          17,
+          21,
+          11,
+          24,
+          161,
+          0
+        ],
+        [
+          0,
+          0,
+          0,
+          0,
+          1,
+          449
+        ]
+      ],
+      "per_class": {
+        "A-Site Rush": {
+          "precision": 0.4144,
+          "recall": 0.451,
+          "f1": 0.4319,
+          "support": 102
+        },
+        "B-Site Rush": {
+          "precision": 0.4,
+          "recall": 0.5417,
+          "f1": 0.4602,
+          "support": 96
+        },
+        "A Split": {
+          "precision": 0.6571,
+          "recall": 0.3876,
+          "f1": 0.4876,
+          "support": 178
+        },
+        "B Split": {
+          "precision": 0.4311,
+          "recall": 0.5902,
+          "f1": 0.4983,
+          "support": 122
+        },
+        "Default": {
+          "precision": 0.7318,
+          "recall": 0.688,
+          "f1": 0.7093,
+          "support": 234
+        },
+        "Slow Execute": {
+          "precision": 1.0,
+          "recall": 0.9978,
+          "f1": 0.9989,
+          "support": 450
+        }
+      },
+      "loss": 0.8477,
+      "early_round_accuracy": {
+        "5s": 0.5584,
+        "10s": 0.5863,
+        "15s": 0.6142,
+        "20s": 0.6328,
+        "25s": 0.6675,
+        "30s": 0.7183
+      },
+      "per_map": {
+        "Bind": {
+          "accuracy": 0.6873,
+          "balanced_accuracy": 0.5466,
+          "top2_accuracy": 0.8691,
+          "macro_precision": 0.5363,
+          "macro_recall": 0.5466,
+          "macro_f1": 0.5212,
+          "weighted_f1": 0.6785,
+          "confusion_matrix": [
+            [
+              20,
+              3,
+              6,
+              8,
+              9,
+              0
+            ],
+            [
+              1,
+              11,
+              1,
+              6,
+              2,
+              0
+            ],
+            [
+              11,
+              8,
+              6,
+              8,
+              5,
+              0
+            ],
+            [
+              4,
+              4,
+              0,
+              5,
+              2,
+              0
+            ],
+            [
+              3,
+              2,
+              0,
+              3,
+              39,
+              0
+            ],
+            [
+              0,
+              0,
+              0,
+              0,
+              0,
+              108
+            ]
+          ],
+          "per_class": {
+            "A-Site Rush": {
+              "precision": 0.5128,
+              "recall": 0.4348,
+              "f1": 0.4706,
+              "support": 46
+            },
+            "B-Site Rush": {
+              "precision": 0.3929,
+              "recall": 0.5238,
+              "f1": 0.449,
+              "support": 21
+            },
+            "A Split": {
+              "precision": 0.4615,
+              "recall": 0.1579,
+              "f1": 0.2353,
+              "support": 38
+            },
+            "B Split": {
+              "precision": 0.1667,
+              "recall": 0.3333,
+              "f1": 0.2222,
+              "support": 15
+            },
+            "Default": {
+              "precision": 0.6842,
+              "recall": 0.8298,
+              "f1": 0.75,
+              "support": 47
+            },
+            "Slow Execute": {
+              "precision": 1.0,
+              "recall": 1.0,
+              "f1": 1.0,
+              "support": 108
+            }
+          },
+          "n_samples": 275
+        },
+        "Breeze": {
+          "accuracy": 0.7016,
+          "balanced_accuracy": 0.6191,
+          "top2_accuracy": 0.8871,
+          "macro_precision": 0.6241,
+          "macro_recall": 0.6191,
+          "macro_f1": 0.6106,
+          "weighted_f1": 0.7079,
+          "confusion_matrix": [
+            [
+              8,
+              3,
+              3,
+              1,
+              3,
+              0
+            ],
+            [
+              7,
+              12,
+              0,
+              7,
+              1,
+              0
+            ],
+            [
+              6,
+              3,
+              22,
+              12,
+              3,
+              0
+            ],
+            [
+              2,
+              5,
+              1,
+              20,
+              3,
+              0
+            ],
+            [
+              1,
+              6,
+              2,
+              5,
+              33,
+              0
+            ],
+            [
+              0,
+              0,
+              0,
+              0,
+              0,
+              79
+            ]
+          ],
+          "per_class": {
+            "A-Site Rush": {
+              "precision": 0.3333,
+              "recall": 0.4444,
+              "f1": 0.381,
+              "support": 18
+            },
+            "B-Site Rush": {
+              "precision": 0.4138,
+              "recall": 0.4444,
+              "f1": 0.4286,
+              "support": 27
+            },
+            "A Split": {
+              "precision": 0.7857,
+              "recall": 0.4783,
+              "f1": 0.5946,
+              "support": 46
+            },
+            "B Split": {
+              "precision": 0.4444,
+              "recall": 0.6452,
+              "f1": 0.5263,
+              "support": 31
+            },
+            "Default": {
+              "precision": 0.7674,
+              "recall": 0.7021,
+              "f1": 0.7333,
+              "support": 47
+            },
+            "Slow Execute": {
+              "precision": 1.0,
+              "recall": 1.0,
+              "f1": 1.0,
+              "support": 79
+            }
+          },
+          "n_samples": 248
+        },
+        "Fracture": {
+          "accuracy": 0.703,
+          "balanced_accuracy": 0.5984,
+          "top2_accuracy": 0.8614,
+          "macro_precision": 0.5874,
+          "macro_recall": 0.5984,
+          "macro_f1": 0.5489,
+          "weighted_f1": 0.7096,
+          "confusion_matrix": [
+            [
+              1,
+              0,
+              0,
+              0,
+              1,
+              0
+            ],
+            [
+              0,
+              8,
+              1,
+              3,
+              0,
+              0
+            ],
+            [
+              3,
+              3,
+              6,
+              4,
+              3,
+              0
+            ],
+            [
+              0,
+              4,
+              0,
+              6,
+              1,
+              0
+            ],
+            [
+              4,
+              2,
+              0,
+              1,
+              9,
+              0
+            ],
+            [
+              0,
+              0,
+              0,
+              0,
+              0,
+              41
+            ]
+          ],
+          "per_class": {
+            "A-Site Rush": {
+              "precision": 0.125,
+              "recall": 0.5,
+              "f1": 0.2,
+              "support": 2
+            },
+            "B-Site Rush": {
+              "precision": 0.4706,
+              "recall": 0.6667,
+              "f1": 0.5517,
+              "support": 12
+            },
+            "A Split": {
+              "precision": 0.8571,
+              "recall": 0.3158,
+              "f1": 0.4615,
+              "support": 19
+            },
+            "B Split": {
+              "precision": 0.4286,
+              "recall": 0.5455,
+              "f1": 0.48,
+              "support": 11
+            },
+            "Default": {
+              "precision": 0.6429,
+              "recall": 0.5625,
+              "f1": 0.6,
+              "support": 16
+            },
+            "Slow Execute": {
+              "precision": 1.0,
+              "recall": 1.0,
+              "f1": 1.0,
+              "support": 41
+            }
+          },
+          "n_samples": 101
+        },
+        "Pearl": {
+          "accuracy": 0.7509,
+          "balanced_accuracy": 0.5966,
+          "top2_accuracy": 0.884,
+          "macro_precision": 0.5726,
+          "macro_recall": 0.5966,
+          "macro_f1": 0.5757,
+          "weighted_f1": 0.7492,
+          "confusion_matrix": [
+            [
+              10,
+              3,
+              3,
+              2,
+              1,
+              0
+            ],
+            [
+              1,
+              6,
+              1,
+              4,
+              1,
+              0
+            ],
+            [
+              5,
+              1,
+              9,
+              7,
+              11,
+              0
+            ],
+            [
+              0,
+              1,
+              3,
+              18,
+              5,
+              0
+            ],
+            [
+              5,
+              7,
+              4,
+              8,
+              45,
+              0
+            ],
+            [
+              0,
+              0,
+              0,
+              0,
+              0,
+              132
+            ]
+          ],
+          "per_class": {
+            "A-Site Rush": {
+              "precision": 0.4762,
+              "recall": 0.5263,
+              "f1": 0.5,
+              "support": 19
+            },
+            "B-Site Rush": {
+              "precision": 0.3333,
+              "recall": 0.4615,
+              "f1": 0.3871,
+              "support": 13
+            },
+            "A Split": {
+              "precision": 0.45,
+              "recall": 0.2727,
+              "f1": 0.3396,
+              "support": 33
+            },
+            "B Split": {
+              "precision": 0.4615,
+              "recall": 0.6667,
+              "f1": 0.5455,
+              "support": 27
+            },
+            "Default": {
+              "precision": 0.7143,
+              "recall": 0.6522,
+              "f1": 0.6818,
+              "support": 69
+            },
+            "Slow Execute": {
+              "precision": 1.0,
+              "recall": 1.0,
+              "f1": 1.0,
+              "support": 132
+            }
+          },
+          "n_samples": 293
+        },
+        "Split": {
+          "accuracy": 0.7358,
+          "balanced_accuracy": 0.6523,
+          "top2_accuracy": 0.8792,
+          "macro_precision": 0.6449,
+          "macro_recall": 0.6523,
+          "macro_f1": 0.6408,
+          "weighted_f1": 0.7436,
+          "confusion_matrix": [
+            [
+              7,
+              2,
+              4,
+              2,
+              2,
+              0
+            ],
+            [
+              5,
+              15,
+              0,
+              2,
+              1,
+              0
+            ],
+            [
+              2,
+              7,
+              26,
+              5,
+              2,
+              0
+            ],
+            [
+              1,
+              10,
+              2,
+              23,
+              2,
+              0
+            ],
+            [
+              4,
+              4,
+              5,
+              7,
+              35,
+              0
+            ],
+            [
+              0,
+              0,
+              0,
+              0,
+              1,
+              89
+            ]
+          ],
+          "per_class": {
+            "A-Site Rush": {
+              "precision": 0.3684,
+              "recall": 0.4118,
+              "f1": 0.3889,
+              "support": 17
+            },
+            "B-Site Rush": {
+              "precision": 0.3947,
+              "recall": 0.6522,
+              "f1": 0.4918,
+              "support": 23
+            },
+            "A Split": {
+              "precision": 0.7027,
+              "recall": 0.619,
+              "f1": 0.6582,
+              "support": 42
+            },
+            "B Split": {
+              "precision": 0.5897,
+              "recall": 0.6053,
+              "f1": 0.5974,
+              "support": 38
+            },
+            "Default": {
+              "precision": 0.814,
+              "recall": 0.6364,
+              "f1": 0.7143,
+              "support": 55
+            },
+            "Slow Execute": {
+              "precision": 1.0,
+              "recall": 0.9889,
+              "f1": 0.9944,
+              "support": 90
+            }
+          },
+          "n_samples": 265
+        }
+      }
+    }
+  },
+  "Transformer": {
+    "train_loss_curve": [
+      1.5218,
+      1.1436,
+      1.0937,
+      1.0827,
+      1.0518,
+      1.0307,
+      1.0343,
+      1.0137,
+      1.0019,
+      0.9853,
+      0.9799,
+      0.9677,
+      0.9638,
+      0.9516,
+      0.9407,
+      0.9385,
+      0.9345,
+      0.9155,
+      0.9188,
+      0.911,
+      0.9071,
+      0.9129,
+      0.9001,
+      0.8899,
+      0.8873,
+      0.8858,
+      0.8789,
+      0.8711,
+      0.8731,
+      0.8736,
+      0.8715,
+      0.8647,
+      0.8628,
+      0.8629,
+      0.8508,
+      0.8595,
+      0.8594,
+      0.861,
+      0.8469,
+      0.8489,
+      0.8543,
+      0.8415,
+      0.8496,
+      0.8419,
+      0.8518,
+      0.84,
+      0.8371,
+      0.8326,
+      0.8365,
+      0.8338,
+      0.8362,
+      0.8323,
+      0.8293,
+      0.8325,
+      0.8239,
+      0.8241,
+      0.8343,
+      0.824,
+      0.8182,
+      0.8198,
+      0.8193,
+      0.8112,
+      0.811,
+      0.8143,
+      0.8093,
+      0.8173,
+      0.8162,
+      0.8174,
+      0.8001,
+      0.8009,
+      0.8089,
+      0.8031,
+      0.7993,
+      0.807,
+      0.8026,
+      0.7988,
+      0.7989,
+      0.7986,
+      0.798,
+      0.7888,
+      0.7896
+    ],
+    "val_loss_curve": [
+      1.0196,
+      0.9597,
+      0.9533,
+      0.94,
+      0.9416,
+      0.9179,
+      0.9195,
+      0.902,
+      0.8979,
+      0.8867,
+      0.8958,
+      0.8828,
+      0.8679,
+      0.8927,
+      0.8936,
+      0.8759,
+      0.8618,
+      0.8551,
+      0.8603,
+      0.8784,
+      0.8559,
+      0.8548,
+      0.8542,
+      0.8554,
+      0.8573,
+      0.853,
+      0.8373,
+      0.839,
+      0.8448,
+      0.8557,
+      0.8411,
+      0.8369,
+      0.8385,
+      0.8378,
+      0.8342,
+      0.8358,
+      0.8372,
+      0.8297,
+      0.8356,
+      0.8471,
+      0.8404,
+      0.8413,
+      0.8264,
+      0.8343,
+      0.8273,
+      0.8308,
+      0.8302,
+      0.8302,
+      0.8477,
+      0.8299,
+      0.8351,
+      0.8345,
+      0.8316,
+      0.8418,
+      0.8413,
+      0.8223,
+      0.8267,
+      0.8286,
+      0.8254,
+      0.8412,
+      0.8395,
+      0.827,
+      0.8472,
+      0.8504,
+      0.8437,
+      0.8523,
+      0.8344,
+      0.828,
+      0.8388,
+      0.8334,
+      0.8296,
+      0.8411,
+      0.8455,
+      0.8388,
+      0.8483,
+      0.8421,
+      0.8647,
+      0.8495,
+      0.8459,
+      0.8572,
+      0.8608
+    ],
+    "train_time_s": 91.8744,
+    "class_weights": [
+      1.4535,
+      1.5482,
+      0.8311,
+      1.2087,
+      0.6303,
+      0.3281
+    ],
+    "validation": {
+      "accuracy": 0.7343,
+      "balanced_accuracy": 0.6328,
+      "top2_accuracy": 0.89,
+      "macro_precision": 0.6269,
+      "macro_recall": 0.6328,
+      "macro_f1": 0.6249,
+      "weighted_f1": 0.7364,
+      "confusion_matrix": [
+        [
+          54,
+          8,
+          18,
+          15,
+          7,
+          0
+        ],
+        [
+          11,
+          50,
+          6,
+          19,
+          9,
+          0
+        ],
+        [
+          25,
+          12,
+          82,
+          34,
+          25,
+          0
+        ],
+        [
+          6,
+          17,
+          9,
+          75,
+          16,
+          0
+        ],
+        [
+          20,
+          14,
+          16,
+          27,
+          157,
+          0
+        ],
+        [
+          0,
+          0,
+          0,
+          0,
+          0,
+          450
+        ]
+      ],
+      "per_class": {
+        "A-Site Rush": {
+          "precision": 0.4655,
+          "recall": 0.5294,
+          "f1": 0.4954,
+          "support": 102
+        },
+        "B-Site Rush": {
+          "precision": 0.495,
+          "recall": 0.5263,
+          "f1": 0.5102,
+          "support": 95
+        },
+        "A Split": {
+          "precision": 0.626,
+          "recall": 0.4607,
+          "f1": 0.5307,
+          "support": 178
+        },
+        "B Split": {
+          "precision": 0.4412,
+          "recall": 0.6098,
+          "f1": 0.5119,
+          "support": 123
+        },
+        "Default": {
+          "precision": 0.7336,
+          "recall": 0.6709,
+          "f1": 0.7009,
+          "support": 234
+        },
+        "Slow Execute": {
+          "precision": 1.0,
+          "recall": 1.0,
+          "f1": 1.0,
+          "support": 450
+        }
+      },
+      "loss": 0.8223,
+      "early_round_accuracy": {
+        "5s": 0.3824,
+        "10s": 0.4391,
+        "15s": 0.5423,
+        "20s": 0.6523,
+        "25s": 0.7064,
+        "30s": 0.7343
+      },
+      "per_map": {
+        "Bind": {
+          "accuracy": 0.7343,
+          "balanced_accuracy": 0.5799,
+          "top2_accuracy": 0.8856,
+          "macro_precision": 0.5853,
+          "macro_recall": 0.5799,
+          "macro_f1": 0.5719,
+          "weighted_f1": 0.7457,
+          "confusion_matrix": [
+            [
+              25,
+              3,
+              7,
+              9,
+              2,
+              0
+            ],
+            [
+              1,
+              6,
+              1,
+              4,
+              5,
+              0
+            ],
+            [
+              4,
+              2,
+              11,
+              7,
+              3,
+              0
+            ],
+            [
+              2,
+              4,
+              1,
+              7,
+              1,
+              0
+            ],
+            [
+              4,
+              2,
+              3,
+              7,
+              39,
+              0
+            ],
+            [
+              0,
+              0,
+              0,
+              0,
+              0,
+              111
+            ]
+          ],
+          "per_class": {
+            "A-Site Rush": {
+              "precision": 0.6944,
+              "recall": 0.5435,
+              "f1": 0.6098,
+              "support": 46
+            },
+            "B-Site Rush": {
+              "precision": 0.3529,
+              "recall": 0.3529,
+              "f1": 0.3529,
+              "support": 17
+            },
+            "A Split": {
+              "precision": 0.4783,
+              "recall": 0.4074,
+              "f1": 0.44,
+              "support": 27
+            },
+            "B Split": {
+              "precision": 0.2059,
+              "recall": 0.4667,
+              "f1": 0.2857,
+              "support": 15
+            },
+            "Default": {
+              "precision": 0.78,
+              "recall": 0.7091,
+              "f1": 0.7429,
+              "support": 55
+            },
+            "Slow Execute": {
+              "precision": 1.0,
+              "recall": 1.0,
+              "f1": 1.0,
+              "support": 111
+            }
+          },
+          "n_samples": 271
+        },
+        "Breeze": {
+          "accuracy": 0.7261,
+          "balanced_accuracy": 0.6316,
+          "top2_accuracy": 0.9046,
+          "macro_precision": 0.6444,
+          "macro_recall": 0.6316,
+          "macro_f1": 0.6244,
+          "weighted_f1": 0.726,
+          "confusion_matrix": [
+            [
+              6,
+              1,
+              4,
+              3,
+              1,
+              0
+            ],
+            [
+              2,
+              11,
+              0,
+              6,
+              2,
+              0
+            ],
+            [
+              6,
+              2,
+              20,
+              12,
+              6,
+              0
+            ],
+            [
+              1,
+              0,
+              3,
+              25,
+              3,
+              0
+            ],
+            [
+              3,
+              2,
+              2,
+              7,
+              26,
+              0
+            ],
+            [
+              0,
+              0,
+              0,
+              0,
+              0,
+              87
+            ]
+          ],
+          "per_class": {
+            "A-Site Rush": {
+              "precision": 0.3333,
+              "recall": 0.4,
+              "f1": 0.3636,
+              "support": 15
+            },
+            "B-Site Rush": {
+              "precision": 0.6875,
+              "recall": 0.5238,
+              "f1": 0.5946,
+              "support": 21
+            },
+            "A Split": {
+              "precision": 0.6897,
+              "recall": 0.4348,
+              "f1": 0.5333,
+              "support": 46
+            },
+            "B Split": {
+              "precision": 0.4717,
+              "recall": 0.7812,
+              "f1": 0.5882,
+              "support": 32
+            },
+            "Default": {
+              "precision": 0.6842,
+              "recall": 0.65,
+              "f1": 0.6667,
+              "support": 40
+            },
+            "Slow Execute": {
+              "precision": 1.0,
+              "recall": 1.0,
+              "f1": 1.0,
+              "support": 87
+            }
+          },
+          "n_samples": 241
+        },
+        "Fracture": {
+          "accuracy": 0.6154,
+          "balanced_accuracy": 0.5068,
+          "top2_accuracy": 0.7596,
+          "macro_precision": 0.5166,
+          "macro_recall": 0.5068,
+          "macro_f1": 0.4898,
+          "weighted_f1": 0.6217,
+          "confusion_matrix": [
+            [
+              2,
+              0,
+              0,
+              1,
+              2,
+              0
+            ],
+            [
+              2,
+              3,
+              0,
+              3,
+              1,
+              0
+            ],
+            [
+              4,
+              1,
+              7,
+              5,
+              4,
+              0
+            ],
+            [
+              0,
+              3,
+              3,
+              9,
+              1,
+              0
+            ],
+            [
+              4,
+              1,
+              0,
+              5,
+              7,
+              0
+            ],
+            [
+              0,
+              0,
+              0,
+              0,
+              0,
+              36
+            ]
+          ],
+          "per_class": {
+            "A-Site Rush": {
+              "precision": 0.1667,
+              "recall": 0.4,
+              "f1": 0.2353,
+              "support": 5
+            },
+            "B-Site Rush": {
+              "precision": 0.375,
+              "recall": 0.3333,
+              "f1": 0.3529,
+              "support": 9
+            },
+            "A Split": {
+              "precision": 0.7,
+              "recall": 0.3333,
+              "f1": 0.4516,
+              "support": 21
+            },
+            "B Split": {
+              "precision": 0.3913,
+              "recall": 0.5625,
+              "f1": 0.4615,
+              "support": 16
+            },
+            "Default": {
+              "precision": 0.4667,
+              "recall": 0.4118,
+              "f1": 0.4375,
+              "support": 17
+            },
+            "Slow Execute": {
+              "precision": 1.0,
+              "recall": 1.0,
+              "f1": 1.0,
+              "support": 36
+            }
+          },
+          "n_samples": 104
+        },
+        "Pearl": {
+          "accuracy": 0.7805,
+          "balanced_accuracy": 0.6965,
+          "top2_accuracy": 0.9094,
+          "macro_precision": 0.6522,
+          "macro_recall": 0.6965,
+          "macro_f1": 0.6643,
+          "weighted_f1": 0.7805,
+          "confusion_matrix": [
+            [
+              15,
+              1,
+              3,
+              0,
+              1,
+              0
+            ],
+            [
+              1,
+              13,
+              3,
+              2,
+              1,
+              0
+            ],
+            [
+              8,
+              2,
+              13,
+              4,
+              8,
+              0
+            ],
+            [
+              0,
+              4,
+              0,
+              15,
+              2,
+              0
+            ],
+            [
+              7,
+              5,
+              6,
+              5,
+              52,
+              0
+            ],
+            [
+              0,
+              0,
+              0,
+              0,
+              0,
+              116
+            ]
+          ],
+          "per_class": {
+            "A-Site Rush": {
+              "precision": 0.4839,
+              "recall": 0.75,
+              "f1": 0.5882,
+              "support": 20
+            },
+            "B-Site Rush": {
+              "precision": 0.52,
+              "recall": 0.65,
+              "f1": 0.5778,
+              "support": 20
+            },
+            "A Split": {
+              "precision": 0.52,
+              "recall": 0.3714,
+              "f1": 0.4333,
+              "support": 35
+            },
+            "B Split": {
+              "precision": 0.5769,
+              "recall": 0.7143,
+              "f1": 0.6383,
+              "support": 21
+            },
+            "Default": {
+              "precision": 0.8125,
+              "recall": 0.6933,
+              "f1": 0.7482,
+              "support": 75
+            },
+            "Slow Execute": {
+              "precision": 1.0,
+              "recall": 1.0,
+              "f1": 1.0,
+              "support": 116
+            }
+          },
+          "n_samples": 287
+        },
+        "Split": {
+          "accuracy": 0.7384,
+          "balanced_accuracy": 0.634,
+          "top2_accuracy": 0.9104,
+          "macro_precision": 0.6278,
+          "macro_recall": 0.634,
+          "macro_f1": 0.6286,
+          "weighted_f1": 0.7404,
+          "confusion_matrix": [
+            [
+              6,
+              3,
+              4,
+              2,
+              1,
+              0
+            ],
+            [
+              5,
+              17,
+              2,
+              4,
+              0,
+              0
+            ],
+            [
+              3,
+              5,
+              31,
+              6,
+              4,
+              0
+            ],
+            [
+              3,
+              6,
+              2,
+              19,
+              9,
+              0
+            ],
+            [
+              2,
+              4,
+              5,
+              3,
+              33,
+              0
+            ],
+            [
+              0,
+              0,
+              0,
+              0,
+              0,
+              100
+            ]
+          ],
+          "per_class": {
+            "A-Site Rush": {
+              "precision": 0.3158,
+              "recall": 0.375,
+              "f1": 0.3429,
+              "support": 16
+            },
+            "B-Site Rush": {
+              "precision": 0.4857,
+              "recall": 0.6071,
+              "f1": 0.5397,
+              "support": 28
+            },
+            "A Split": {
+              "precision": 0.7045,
+              "recall": 0.6327,
+              "f1": 0.6667,
+              "support": 49
+            },
+            "B Split": {
+              "precision": 0.5588,
+              "recall": 0.4872,
+              "f1": 0.5205,
+              "support": 39
+            },
+            "Default": {
+              "precision": 0.7021,
+              "recall": 0.7021,
+              "f1": 0.7021,
+              "support": 47
+            },
+            "Slow Execute": {
+              "precision": 1.0,
+              "recall": 1.0,
+              "f1": 1.0,
+              "support": 100
+            }
+          },
+          "n_samples": 279
+        }
+      }
+    },
+    "test": {
+      "accuracy": 0.7242,
+      "balanced_accuracy": 0.6131,
+      "top2_accuracy": 0.8714,
+      "macro_precision": 0.607,
+      "macro_recall": 0.6131,
+      "macro_f1": 0.6054,
+      "weighted_f1": 0.7272,
+      "confusion_matrix": [
+        [
+          47,
+          15,
+          17,
+          12,
+          11,
+          0
+        ],
+        [
+          9,
+          51,
+          10,
+          22,
+          4,
+          0
+        ],
+        [
+          26,
+          21,
+          80,
+          27,
+          24,
+          0
+        ],
+        [
+          5,
+          27,
+          10,
+          67,
+          13,
+          0
+        ],
+        [
+          18,
+          12,
+          16,
+          27,
+          161,
+          0
+        ],
+        [
+          0,
+          0,
+          0,
+          0,
+          0,
+          450
+        ]
+      ],
+      "per_class": {
+        "A-Site Rush": {
+          "precision": 0.4476,
+          "recall": 0.4608,
+          "f1": 0.4541,
+          "support": 102
+        },
+        "B-Site Rush": {
+          "precision": 0.4048,
+          "recall": 0.5312,
+          "f1": 0.4595,
+          "support": 96
+        },
+        "A Split": {
+          "precision": 0.6015,
+          "recall": 0.4494,
+          "f1": 0.5145,
+          "support": 178
+        },
+        "B Split": {
+          "precision": 0.4323,
+          "recall": 0.5492,
+          "f1": 0.4838,
+          "support": 122
+        },
+        "Default": {
+          "precision": 0.7559,
+          "recall": 0.688,
+          "f1": 0.7204,
+          "support": 234
+        },
+        "Slow Execute": {
+          "precision": 1.0,
+          "recall": 1.0,
+          "f1": 1.0,
+          "support": 450
+        }
+      },
+      "loss": 0.8837,
+      "early_round_accuracy": {
+        "5s": 0.3866,
+        "10s": 0.4247,
+        "15s": 0.5313,
+        "20s": 0.6345,
+        "25s": 0.6853,
+        "30s": 0.7242
+      },
+      "per_map": {
+        "Bind": {
+          "accuracy": 0.6836,
+          "balanced_accuracy": 0.5252,
+          "top2_accuracy": 0.8582,
+          "macro_precision": 0.5195,
+          "macro_recall": 0.5252,
+          "macro_f1": 0.5122,
+          "weighted_f1": 0.6812,
+          "confusion_matrix": [
+            [
+              20,
+              3,
+              8,
+              8,
+              7,
+              0
+            ],
+            [
+              0,
+              10,
+              3,
+              6,
+              2,
+              0
+            ],
+            [
+              10,
+              7,
+              8,
+              7,
+              6,
+              0
+            ],
+            [
+              3,
+              5,
+              2,
+              3,
+              2,
+              0
+            ],
+            [
+              2,
+              3,
+              0,
+              3,
+              39,
+              0
+            ],
+            [
+              0,
+              0,
+              0,
+              0,
+              0,
+              108
+            ]
+          ],
+          "per_class": {
+            "A-Site Rush": {
+              "precision": 0.5714,
+              "recall": 0.4348,
+              "f1": 0.4938,
+              "support": 46
+            },
+            "B-Site Rush": {
+              "precision": 0.3571,
+              "recall": 0.4762,
+              "f1": 0.4082,
+              "support": 21
+            },
+            "A Split": {
+              "precision": 0.381,
+              "recall": 0.2105,
+              "f1": 0.2712,
+              "support": 38
+            },
+            "B Split": {
+              "precision": 0.1111,
+              "recall": 0.2,
+              "f1": 0.1429,
+              "support": 15
+            },
+            "Default": {
+              "precision": 0.6964,
+              "recall": 0.8298,
+              "f1": 0.7573,
+              "support": 47
+            },
+            "Slow Execute": {
+              "precision": 1.0,
+              "recall": 1.0,
+              "f1": 1.0,
+              "support": 108
+            }
+          },
+          "n_samples": 275
+        },
+        "Breeze": {
+          "accuracy": 0.7218,
+          "balanced_accuracy": 0.6564,
+          "top2_accuracy": 0.875,
+          "macro_precision": 0.6499,
+          "macro_recall": 0.6564,
+          "macro_f1": 0.6462,
+          "weighted_f1": 0.7274,
+          "confusion_matrix": [
+            [
+              10,
+              3,
+              3,
+              1,
+              1,
+              0
+            ],
+            [
+              5,
+              15,
+              2,
+              4,
+              1,
+              0
+            ],
+            [
+              5,
+              5,
+              26,
+              8,
+              2,
+              0
+            ],
+            [
+              1,
+              5,
+              2,
+              20,
+              3,
+              0
+            ],
+            [
+              2,
+              4,
+              4,
+              8,
+              29,
+              0
+            ],
+            [
+              0,
+              0,
+              0,
+              0,
+              0,
+              79
+            ]
+          ],
+          "per_class": {
+            "A-Site Rush": {
+              "precision": 0.4348,
+              "recall": 0.5556,
+              "f1": 0.4878,
+              "support": 18
+            },
+            "B-Site Rush": {
+              "precision": 0.4688,
+              "recall": 0.5556,
+              "f1": 0.5085,
+              "support": 27
+            },
+            "A Split": {
+              "precision": 0.7027,
+              "recall": 0.5652,
+              "f1": 0.6265,
+              "support": 46
+            },
+            "B Split": {
+              "precision": 0.4878,
+              "recall": 0.6452,
+              "f1": 0.5556,
+              "support": 31
+            },
+            "Default": {
+              "precision": 0.8056,
+              "recall": 0.617,
+              "f1": 0.6988,
+              "support": 47
+            },
+            "Slow Execute": {
+              "precision": 1.0,
+              "recall": 1.0,
+              "f1": 1.0,
+              "support": 79
+            }
+          },
+          "n_samples": 248
+        },
+        "Fracture": {
+          "accuracy": 0.6931,
+          "balanced_accuracy": 0.6574,
+          "top2_accuracy": 0.8713,
+          "macro_precision": 0.5917,
+          "macro_recall": 0.6574,
+          "macro_f1": 0.5556,
+          "weighted_f1": 0.7027,
+          "confusion_matrix": [
+            [
+              2,
+              0,
+              0,
+              0,
+              0,
+              0
+            ],
+            [
+              0,
+              7,
+              1,
+              4,
+              0,
+              0
+            ],
+            [
+              5,
+              2,
+              6,
+              4,
+              2,
+              0
+            ],
+            [
+              0,
+              4,
+              0,
+              6,
+              1,
+              0
+            ],
+            [
+              4,
+              0,
+              1,
+              3,
+              8,
+              0
+            ],
+            [
+              0,
+              0,
+              0,
+              0,
+              0,
+              41
+            ]
+          ],
+          "per_class": {
+            "A-Site Rush": {
+              "precision": 0.1818,
+              "recall": 1.0,
+              "f1": 0.3077,
+              "support": 2
+            },
+            "B-Site Rush": {
+              "precision": 0.5385,
+              "recall": 0.5833,
+              "f1": 0.56,
+              "support": 12
+            },
+            "A Split": {
+              "precision": 0.75,
+              "recall": 0.3158,
+              "f1": 0.4444,
+              "support": 19
+            },
+            "B Split": {
+              "precision": 0.3529,
+              "recall": 0.5455,
+              "f1": 0.4286,
+              "support": 11
+            },
+            "Default": {
+              "precision": 0.7273,
+              "recall": 0.5,
+              "f1": 0.5926,
+              "support": 16
+            },
+            "Slow Execute": {
+              "precision": 1.0,
+              "recall": 1.0,
+              "f1": 1.0,
+              "support": 41
+            }
+          },
+          "n_samples": 101
+        },
+        "Pearl": {
+          "accuracy": 0.7679,
+          "balanced_accuracy": 0.6013,
+          "top2_accuracy": 0.8703,
+          "macro_precision": 0.5896,
+          "macro_recall": 0.6013,
+          "macro_f1": 0.5926,
+          "weighted_f1": 0.7694,
+          "confusion_matrix": [
+            [
+              9,
+              6,
+              2,
+              2,
+              0,
+              0
+            ],
+            [
+              0,
+              5,
+              3,
+              5,
+              0,
+              0
+            ],
+            [
+              4,
+              0,
+              14,
+              4,
+              11,
+              0
+            ],
+            [
+              0,
+              1,
+              4,
+              17,
+              5,
+              0
+            ],
+            [
+              7,
+              3,
+              4,
+              7,
+              48,
+              0
+            ],
+            [
+              0,
+              0,
+              0,
+              0,
+              0,
+              132
+            ]
+          ],
+          "per_class": {
+            "A-Site Rush": {
+              "precision": 0.45,
+              "recall": 0.4737,
+              "f1": 0.4615,
+              "support": 19
+            },
+            "B-Site Rush": {
+              "precision": 0.3333,
+              "recall": 0.3846,
+              "f1": 0.3571,
+              "support": 13
+            },
+            "A Split": {
+              "precision": 0.5185,
+              "recall": 0.4242,
+              "f1": 0.4667,
+              "support": 33
+            },
+            "B Split": {
+              "precision": 0.4857,
+              "recall": 0.6296,
+              "f1": 0.5484,
+              "support": 27
+            },
+            "Default": {
+              "precision": 0.75,
+              "recall": 0.6957,
+              "f1": 0.7218,
+              "support": 69
+            },
+            "Slow Execute": {
+              "precision": 1.0,
+              "recall": 1.0,
+              "f1": 1.0,
+              "support": 132
+            }
+          },
+          "n_samples": 293
+        },
+        "Split": {
+          "accuracy": 0.7321,
+          "balanced_accuracy": 0.6343,
+          "top2_accuracy": 0.883,
+          "macro_precision": 0.633,
+          "macro_recall": 0.6343,
+          "macro_f1": 0.6275,
+          "weighted_f1": 0.7379,
+          "confusion_matrix": [
+            [
+              6,
+              3,
+              4,
+              1,
+              3,
+              0
+            ],
+            [
+              4,
+              14,
+              1,
+              3,
+              1,
+              0
+            ],
+            [
+              2,
+              7,
+              26,
+              4,
+              3,
+              0
+            ],
+            [
+              1,
+              12,
+              2,
+              21,
+              2,
+              0
+            ],
+            [
+              3,
+              2,
+              7,
+              6,
+              37,
+              0
+            ],
+            [
+              0,
+              0,
+              0,
+              0,
+              0,
+              90
+            ]
+          ],
+          "per_class": {
+            "A-Site Rush": {
+              "precision": 0.375,
+              "recall": 0.3529,
+              "f1": 0.3636,
+              "support": 17
+            },
+            "B-Site Rush": {
+              "precision": 0.3684,
+              "recall": 0.6087,
+              "f1": 0.459,
+              "support": 23
+            },
+            "A Split": {
+              "precision": 0.65,
+              "recall": 0.619,
+              "f1": 0.6341,
+              "support": 42
+            },
+            "B Split": {
+              "precision": 0.6,
+              "recall": 0.5526,
+              "f1": 0.5753,
+              "support": 38
+            },
+            "Default": {
+              "precision": 0.8043,
+              "recall": 0.6727,
+              "f1": 0.7327,
+              "support": 55
+            },
+            "Slow Execute": {
+              "precision": 1.0,
+              "recall": 1.0,
+              "f1": 1.0,
+              "support": 90
+            }
+          },
+          "n_samples": 265
+        }
+      }
+    }
+  },
+  "_analysis": {
+    "best_by_test_macro_f1": "Transformer",
+    "ranking": [
+      {
+        "model": "Transformer",
+        "test_macro_f1": 0.6054,
+        "test_accuracy": 0.7242,
+        "test_top2_accuracy": 0.8714,
+        "balanced_accuracy": 0.6131
+      },
+      {
+        "model": "GRU",
+        "test_macro_f1": 0.5977,
+        "test_accuracy": 0.7183,
+        "test_top2_accuracy": 0.8782,
+        "balanced_accuracy": 0.6094
+      },
+      {
+        "model": "LSTM",
+        "test_macro_f1": 0.5973,
+        "test_accuracy": 0.714,
+        "test_top2_accuracy": 0.8731,
+        "balanced_accuracy": 0.6164
+      },
+      {
+        "model": "MLP",
+        "test_macro_f1": 0.5304,
+        "test_accuracy": 0.665,
+        "test_top2_accuracy": 0.8156,
+        "balanced_accuracy": 0.5494
+      }
+    ]
+  }
+}

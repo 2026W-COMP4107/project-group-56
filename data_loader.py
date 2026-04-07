@@ -19,6 +19,8 @@ Features:
 - Provides query functions for kills, locations, and player statistics
 """
 
+from __future__ import annotations
+
 import sqlite3
 import pandas as pd
 import numpy as np
@@ -29,14 +31,12 @@ import math
 from pathlib import Path
 from datetime import datetime
 
-
-# ── Constants ────────────────────────────────────────────────────────────────
 DB_PATH = "valorant.db"
 
-AGENTS   = ["Astra", "Breach", "Brimstone", "Chamber", "Clove", 
-            "Cypher", "Deadlock", "Fade", "Gekko", "Harbor", 
-            "Iso", "Jett", "KAYO", "Killjoy", "Miks", "Neon", 
-            "Omen", "Phoenix", "Raze", "Reyna", "Sage", "Skye", 
+AGENTS   = ["Astra", "Breach", "Brimstone", "Chamber", "Clove",
+            "Cypher", "Deadlock", "Fade", "Gekko", "Harbor",
+            "Iso", "Jett", "KAYO", "Killjoy", "Miks", "Neon",
+            "Omen", "Phoenix", "Raze", "Reyna", "Sage", "Skye",
             "Sova", "Tejo", "Veto", "Viper", "Vyse", "Waylay", "Yoru"]
 
 MAPS     = ["Breeze", "Bind", "Fracture", "Pearl", "Split"]
@@ -46,28 +46,17 @@ PLAYERS  = [f"Player{i}" for i in range(1, 21)]
 
 
 def load_from_json_file(json_path: str, db_path: str = DB_PATH) -> None:
-    """
-    Loads Valorant match data from a JSON file into the SQLite database.
-    
-    Parameters
-    ----------
-    json_path : str
-        Path to the JSON file containing Valorant API response data
-    db_path : str
-        Path to the SQLite database
-    """
     try:
-        with open(json_path, 'r', encoding='utf-8') as f:
+        with open(json_path, "r", encoding="utf-8") as f:
             data = json.load(f)
-        
-        # Extract the matches array from the JSON
-        if isinstance(data, dict) and 'data' in data:
-            matches = data['data']
+
+        if isinstance(data, dict) and "data" in data:
+            matches = data["data"]
         elif isinstance(data, list):
             matches = data
         else:
             matches = [data]
-        
+
         _insert_matches_to_db(matches, db_path)
         print(f"[data_loader] Loaded data from JSON file '{json_path}'.")
     except Exception as e:
@@ -75,188 +64,164 @@ def load_from_json_file(json_path: str, db_path: str = DB_PATH) -> None:
 
 
 def prompt_for_file_selection(json_folder: str = "json", db_path: str = DB_PATH) -> None:
-    """
-    Prompts user to select a JSON file from the json folder and its subdirectories.
-    Displays indexed file names organized by map for easy selection.
-    Recursively finds all .json files in json folder and subfolders.
-    
-    Parameters
-    ----------
-    json_folder : str
-        Path to the folder containing JSON files (may have map subdirectories)
-    db_path : str
-        Path to the SQLite database
-    """
     folder_path = Path(json_folder)
-    
+
     if not folder_path.exists():
         print(f"[data_loader] Error: Folder '{json_folder}' does not exist.")
         return
-    
-    # Recursively find all .json files
+
     json_files = sorted(list(folder_path.glob("**/*.json")))
-    
+
     if not json_files:
         print(f"[data_loader] No JSON files found in '{json_folder}' or subdirectories.")
         return
-    
-    # Group files by map subfolder for display
+
     files_by_map = {}
     for file_path in json_files:
         relative_path = file_path.relative_to(folder_path)
         map_name = relative_path.parts[0] if len(relative_path.parts) > 1 else "root"
-        if map_name not in files_by_map:
-            files_by_map[map_name] = []
-        files_by_map[map_name].append(file_path)
-    
+        files_by_map.setdefault(map_name, []).append(file_path)
+
     print(f"\n[data_loader] Available files in '{json_folder}':")
     print("=" * 70)
     file_index = 1
     index_to_path = {}
-    
+
     for map_name in sorted(files_by_map.keys()):
         if map_name != "root":
             print(f"\n  {map_name}:")
         for file_path in sorted(files_by_map[map_name]):
-            display_name = file_path.name
-            print(f"    [{file_index}] {display_name}")
+            print(f"    [{file_index}] {file_path.name}")
             index_to_path[file_index] = file_path
             file_index += 1
-    
+
     print("=" * 70)
-    
+
     while True:
         try:
             selection = input("[data_loader] Enter the file number to load (or 'q' to quit): ").strip()
-            
-            if selection.lower() == 'q':
+
+            if selection.lower() == "q":
                 print("[data_loader] Cancelled.")
                 return
-            
+
             file_idx = int(selection)
-            
             if file_idx not in index_to_path:
                 print(f"[data_loader] Invalid selection. Please enter a number between 1 and {len(json_files)}.")
                 continue
-            
+
             selected_file = index_to_path[file_idx]
-            
             print(f"\n[data_loader] Loading file: {selected_file}")
-            try:
-                with open(selected_file, 'r', encoding='utf-8') as f:
-                    data = json.load(f)
-                
-                if isinstance(data, dict) and 'data' in data:
-                    matches = data['data']
-                elif isinstance(data, list):
-                    matches = data
-                else:
-                    matches = [data]
-                
-                _insert_matches_to_db(matches, db_path)
-                print(f"[data_loader] Successfully loaded data from '{selected_file.name}'.")
-            except Exception as e:
-                print(f"[data_loader] Error loading file '{selected_file.name}': {e}")
-            
-            break
-        except ValueError:
-            print("[data_loader] Invalid input. Please enter a valid number or 'q' to quit.")
 
-
-def load_all_json_files(json_folder: str = "json", db_path: str = DB_PATH) -> int:
-    """
-    Loads all JSON files from the json folder and subdirectories into the database.
-    Automatically discovers and loads all .json files recursively.
-    
-    Parameters
-    ----------
-    json_folder : str
-        Path to the folder containing JSON files
-    db_path : str
-        Path to the SQLite database
-    
-    Returns
-    -------
-    int
-        Total number of matches loaded
-    """
-    folder_path = Path(json_folder)
-    
-    if not folder_path.exists():
-        print(f"[data_loader] Error: Folder '{json_folder}' does not exist.")
-        return 0
-    
-    # Recursively find all .json files
-    json_files = sorted(list(folder_path.glob("**/*.json")))
-    
-    if not json_files:
-        print(f"[data_loader] No JSON files found in '{json_folder}' or subdirectories.")
-        return 0
-    
-    total_matches = 0
-    print(f"\n[data_loader] Found {len(json_files)} JSON files. Loading...")
-    print("=" * 70)
-    
-    for idx, file_path in enumerate(json_files, 1):
-        try:
-            with open(file_path, 'r', encoding='utf-8') as f:
+            with open(selected_file, "r", encoding="utf-8") as f:
                 data = json.load(f)
-            
-            if isinstance(data, dict) and 'data' in data:
-                matches = data['data']
+
+            if isinstance(data, dict) and "data" in data:
+                matches = data["data"]
             elif isinstance(data, list):
                 matches = data
             else:
                 matches = [data]
-            
+
+            _insert_matches_to_db(matches, db_path)
+            print(f"[data_loader] Successfully loaded data from '{selected_file.name}'.")
+            break
+
+        except ValueError:
+            print("[data_loader] Invalid input. Please enter a valid number or 'q' to quit.")
+        except Exception as e:
+            print(f"[data_loader] Error: {e}")
+            break
+
+
+def load_all_json_files(json_folder: str = "json", db_path: str = DB_PATH) -> int:
+    folder_path = Path(json_folder)
+
+    if not folder_path.exists():
+        print(f"[data_loader] Error: Folder '{json_folder}' does not exist.")
+        return 0
+
+    json_files = sorted(list(folder_path.glob("**/*.json")))
+
+    if not json_files:
+        print(f"[data_loader] No JSON files found in '{json_folder}' or subdirectories.")
+        return 0
+
+    total_matches = 0
+    print(f"\n[data_loader] Found {len(json_files)} JSON files. Loading...")
+    print("=" * 70)
+
+    for idx, file_path in enumerate(json_files, 1):
+        try:
+            with open(file_path, "r", encoding="utf-8") as f:
+                data = json.load(f)
+
+            if isinstance(data, dict) and "data" in data:
+                matches = data["data"]
+            elif isinstance(data, list):
+                matches = data
+            else:
+                matches = [data]
+
             match_count = len(matches) if isinstance(matches, list) else 1
             _insert_matches_to_db(matches, db_path)
             total_matches += match_count
-            
+
             relative_path = file_path.relative_to(folder_path)
             print(f"  [{idx}/{len(json_files)}] {relative_path} → {match_count} match(es)")
         except Exception as e:
             relative_path = file_path.relative_to(folder_path)
             print(f"  [{idx}/{len(json_files)}] {relative_path} → ERROR: {e}")
-    
+
     print("=" * 70)
     print(f"[data_loader] Total loaded: {total_matches} matches from {len(json_files)} files.")
     return total_matches
 
 
-###
 def load_from_api_response(api_response: dict, db_path: str = DB_PATH) -> None:
-    """
-    Loads Valorant match data from an API response into the SQLite database.
-    
-    Parameters
-    ----------
-    api_response : dict
-        API response containing match data (e.g., from Valorant API)
-    db_path : str
-        Path to the SQLite database
-    """
-    matches = api_response.get('data', [api_response]) if isinstance(api_response, dict) else api_response
+    matches = api_response.get("data", [api_response]) if isinstance(api_response, dict) else api_response
     _insert_matches_to_db(matches, db_path)
     print(f"[data_loader] Loaded {len(matches) if isinstance(matches, list) else 1} match(es) from API response.")
 
 
+def _safe_site(site_value) -> str | None:
+    if site_value is None:
+        return None
+    s = str(site_value).strip().upper()
+    if s in {"A", "A SITE", "A-SITE"}:
+        return "A"
+    if s in {"B", "B SITE", "B-SITE"}:
+        return "B"
+    return None
+
+
+def _extract_plant_info(round_info: dict) -> dict:
+    plant = round_info.get("plant")
+    if not plant:
+        return {
+            "plant_site": None,
+            "plant_x": None,
+            "plant_y": None,
+            "plant_time_ms": None,
+        }
+
+    loc = plant.get("location", {}) or {}
+    return {
+        "plant_site": _safe_site(plant.get("site")),
+        "plant_x": loc.get("x"),
+        "plant_y": loc.get("y"),
+        "plant_time_ms": plant.get("round_time_in_ms"),
+    }
+
+
+def _infer_round_side(round_num: int) -> str:
+    return "attack" if round_num < 12 else "defense"
+
+
 def _insert_matches_to_db(matches_data, db_path: str = DB_PATH) -> None:
-    """
-    Helper function to parse and insert match data into the database.
-    Handles both JSON file and API response formats.
-    
-    Parameters
-    ----------
-    matches_data : list or dict
-        Match data from JSON/API
-    db_path : str
-        Path to the SQLite database
-    """
     conn = sqlite3.connect(db_path)
     cur = conn.cursor()
-    
-    # Ensure tables exist
+
     cur.executescript("""
         CREATE TABLE IF NOT EXISTS matches (
             match_id   TEXT PRIMARY KEY,
@@ -282,6 +247,7 @@ def _insert_matches_to_db(matches_data, db_path: str = DB_PATH) -> None:
             side              TEXT,
             winner            TEXT,
             result            TEXT,
+            plant_site        TEXT,
             plant_x           REAL,
             plant_y           REAL,
             plant_time_ms     INTEGER,
@@ -329,208 +295,221 @@ def _insert_matches_to_db(matches_data, db_path: str = DB_PATH) -> None:
             FOREIGN KEY (kill_id) REFERENCES kills(kill_id)
         );
     """)
-    
 
+    try:
+        cur.execute("ALTER TABLE rounds ADD COLUMN plant_site TEXT")
+    except sqlite3.OperationalError:
+        pass
 
     if not isinstance(matches_data, list):
         matches_data = [matches_data]
-    
-    kill_counter = 0
+
     total_kills = 0
     matches_processed = 0
-    
+
     for match in matches_data:
         if not isinstance(match, dict):
             continue
-            
-        match_kill_counter = 0
-        # Extract match-level data
-        metadata = match.get('metadata', {})
-        match_id = metadata.get('match_id', f"api_match_{kill_counter}")
-        map_data = metadata.get('map', {})
-        map_name = map_data.get('name', 'Unknown')
-        started_at = metadata.get('started_at', '')
-        
-        # Skip matches not in current map pool
+
+        metadata = match.get("metadata", {})
+        match_id = metadata.get("match_id")
+        if not match_id:
+            continue
+
+        map_data = metadata.get("map", {}) or {}
+        map_name = map_data.get("name", "Unknown")
+
         if map_name not in MAPS:
             continue
-        
-        # Skip non-competitive matches (e.g., Deathmatch)
-        queue = metadata.get('queue', {})
-        queue_id = queue.get('id', '').lower()
-        if queue_id != 'competitive':
+
+        queue = metadata.get("queue", {}) or {}
+        queue_id = str(queue.get("id", "")).lower()
+        if queue_id != "competitive":
             continue
-        
-        # Parse date from ISO format
+
+        started_at = metadata.get("started_at", "")
         try:
-            date_obj = datetime.fromisoformat(started_at.replace('Z', '+00:00'))
-            date = date_obj.strftime('%Y-%m-%d')
-        except Exception as e:
-            print(f"[data_loader] Warning: Failed to parse date '{started_at}' for match_id '{match_id}': {e}. Using today's date as fallback.")
-            date = datetime.today().strftime('%Y-%m-%d')
-        
-        # Insert match
+            date_obj = datetime.fromisoformat(started_at.replace("Z", "+00:00"))
+            date = date_obj.strftime("%Y-%m-%d")
+        except Exception:
+            date = datetime.today().strftime("%Y-%m-%d")
+
         cur.execute(
             "INSERT OR IGNORE INTO matches VALUES (?,?,?)",
             (match_id, map_name, date)
         )
         matches_processed += 1
-        
-        # Process players and their kill data
-        players = match.get('players', [])
-        kill_data = match.get('kills', [])
-        
-        # Create player name -> agent mapping and insert players
+
+        players = match.get("players", []) or []
+        rounds_data = match.get("rounds", []) or []
+        kill_data = match.get("kills", []) or []
+
         player_agent_map = {}
         player_puuid_map = {}
         player_team_map = {}
-        
+
         for player in players:
-            player_name = player.get('name', '')
-            player_tag = player.get('tag', '')
-            player_puuid = player.get('puuid', '')
-            agent_name = player.get('agent', {}).get('name', 'Unknown')
-            team_id = player.get('team_id', '')
-            
+            player_name = player.get("name", "")
+            player_tag = player.get("tag", "")
+            player_puuid = player.get("puuid", "")
+            agent_name = (player.get("agent", {}) or {}).get("name", "Unknown")
+            team_id = player.get("team_id", "")
+
             player_agent_map[player_name] = agent_name
             player_puuid_map[player_name] = player_puuid
             player_team_map[player_name] = team_id
-            
-            # Insert player
+
             cur.execute(
                 "INSERT OR IGNORE INTO players VALUES (?,?,?,?,?,?)",
                 (player_puuid, match_id, player_name, player_tag, team_id, agent_name)
             )
-        
-        # Create a round mapping based on kill data and round data from match
+
         rounds_dict = {}
-        rounds_data = match.get('rounds', [])
-        
-        # Build rounds dict from explicit round data first
+
         for round_info in rounds_data:
             if not round_info:
                 continue
-            round_id_from_data = round_info.get('id')
-            if round_id_from_data is not None:
-                # Find the actual round_id in our format
-                # Try to match with our generated round_ids
-                pass
-        
-        for kill in kill_data:
-            if not kill:  # Skip empty kill entries
+
+            round_num = round_info.get("id")
+            if round_num is None:
                 continue
-                
-            round_num = kill.get('round', 0)
+
+            round_id = f"{match_id}_r{int(round_num):02d}"
+            plant_info = _extract_plant_info(round_info)
+
+            rounds_dict[round_id] = {
+                "match_id": match_id,
+                "round_num": int(round_num),
+                "side": _infer_round_side(int(round_num)),
+                "winner": round_info.get("winning_team"),
+                "result": round_info.get("result"),
+                "plant_site": plant_info["plant_site"],
+                "plant_x": plant_info["plant_x"],
+                "plant_y": plant_info["plant_y"],
+                "plant_time_ms": plant_info["plant_time_ms"],
+            }
+
+        match_kill_counter = 0
+
+        for kill in kill_data:
+            if not kill:
+                continue
+
+            round_num = int(kill.get("round", 0))
             round_id = f"{match_id}_r{round_num:02d}"
-            
+
             if round_id not in rounds_dict:
-                # Guess which team won based on kill data
-                winner = "team_a"  # Default
                 rounds_dict[round_id] = {
-                    'match_id': match_id,
-                    'round_num': round_num,
-                    'side': 'attack' if round_num < 12 else 'defense',
-                    'winner': winner
+                    "match_id": match_id,
+                    "round_num": round_num,
+                    "side": _infer_round_side(round_num),
+                    "winner": None,
+                    "result": None,
+                    "plant_site": None,
+                    "plant_x": None,
+                    "plant_y": None,
+                    "plant_time_ms": None,
                 }
-            
-            # Extract kill details from nested structure
-            killer_obj = kill.get('killer', {})
-            victim_obj = kill.get('victim', {})
-            
-            killer = killer_obj.get('name', f"Player{kill_counter}")
-            victim = victim_obj.get('name', f"Player{kill_counter + 1}")
-            
-            # Get PUUIDs
-            killer_puuid = killer_obj.get('puuid', player_puuid_map.get(killer, ''))
-            victim_puuid = victim_obj.get('puuid', player_puuid_map.get(victim, ''))
-            
-            # Look up agent from player data
-            killer_agent = player_agent_map.get(killer, 'Unknown')
-            victim_agent = player_agent_map.get(victim, 'Unknown')
-            
-            # Extract weapon
-            weapon_obj = kill.get('weapon', {})
-            weapon = weapon_obj.get('name', 'Unknown') if isinstance(weapon_obj, dict) else str(weapon_obj)
-            
-            # Extract locations (killer shot from, victim died at)
-            killer_location = kill.get('location', {})
-            killer_loc_x = killer_location.get('x', None)
-            killer_loc_y = killer_location.get('y', None)
-            
-            victim_location = victim_obj.get('location', {})
-            victim_loc_x = victim_location.get('x', None)
-            victim_loc_y = victim_location.get('y', None)
-            
-            site = kill.get('site', 'Unknown')
-            timestamp_ms = kill.get('time_in_round_in_ms', 0)
+
+            killer_obj = kill.get("killer", {}) or {}
+            victim_obj = kill.get("victim", {}) or {}
+
+            killer = killer_obj.get("name", f"Player{match_kill_counter}")
+            victim = victim_obj.get("name", f"Player{match_kill_counter + 1}")
+
+            killer_puuid = killer_obj.get("puuid", player_puuid_map.get(killer, ""))
+            victim_puuid = victim_obj.get("puuid", player_puuid_map.get(victim, ""))
+
+            killer_agent = player_agent_map.get(killer, "Unknown")
+            victim_agent = player_agent_map.get(victim, "Unknown")
+
+            weapon_obj = kill.get("weapon", {}) or {}
+            weapon = weapon_obj.get("name", "Unknown") if isinstance(weapon_obj, dict) else str(weapon_obj)
+
+            killer_location = kill.get("location", {}) or {}
+            killer_loc_x = killer_location.get("x")
+            killer_loc_y = killer_location.get("y")
+
+            victim_location = victim_obj.get("location", {}) or {}
+            victim_loc_x = victim_location.get("x")
+            victim_loc_y = victim_location.get("y")
+
+            timestamp_ms = int(kill.get("time_in_round_in_ms", 0) or 0)
             timestamp_sec = timestamp_ms / 1000.0
-            is_first_blood = 1 if kill.get('is_elimination_first_blood', False) else 0
-            
-            # Insert kill with all new fields
+            is_first_blood = 1 if kill.get("is_elimination_first_blood", False) else 0
+
+            raw_site = kill.get("site")
+            site = _safe_site(raw_site) or "Unknown"
+
             kill_id = f"{match_id}_kill_{match_kill_counter:06d}"
             cur.execute(
                 "INSERT OR IGNORE INTO kills VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)",
-                (kill_id, round_id, round_num, match_id, killer, victim, killer_puuid, victim_puuid,
-                 killer_agent, victim_agent, weapon,
-                 killer_loc_x, killer_loc_y, victim_loc_x, victim_loc_y,
-                 killer_loc_x, killer_loc_y,  # kill_location = killer_location
-                 site, timestamp_sec, timestamp_ms, is_first_blood)
+                (
+                    kill_id, round_id, round_num, match_id,
+                    killer, victim, killer_puuid, victim_puuid,
+                    killer_agent, victim_agent, weapon,
+                    killer_loc_x, killer_loc_y, victim_loc_x, victim_loc_y,
+                    killer_loc_x, killer_loc_y,
+                    site, timestamp_sec, timestamp_ms, is_first_blood
+                )
             )
-            
-            # Insert all player locations for this kill
-            player_locations = kill.get('player_locations', [])
+
+            player_locations = kill.get("player_locations", []) or []
             for idx, player_loc in enumerate(player_locations):
                 if not player_loc:
                     continue
-                player_name = player_loc.get('player', {}).get('name', f'Unknown_{idx}')
-                player_puuid = player_loc.get('player', {}).get('puuid', player_puuid_map.get(player_name, ''))
-                player_team = player_team_map.get(player_name, '')
-                location = player_loc.get('location', {})
-                loc_x = location.get('x')
-                loc_y = location.get('y')
-                view_radians = player_loc.get('view_radians')
-                
+
+                player_name = (player_loc.get("player", {}) or {}).get("name", f"Unknown_{idx}")
+                player_puuid = (player_loc.get("player", {}) or {}).get("puuid", player_puuid_map.get(player_name, ""))
+                player_team = player_team_map.get(player_name, "")
+                location = player_loc.get("location", {}) or {}
+                loc_x = location.get("x")
+                loc_y = location.get("y")
+                view_radians = player_loc.get("view_radians")
+
                 location_id = f"{kill_id}_loc_{idx:02d}"
                 cur.execute(
                     "INSERT OR IGNORE INTO player_locations VALUES (?,?,?,?,?,?,?,?,?,?,?,?)",
-                    (location_id, kill_id, match_id, round_id, round_num, timestamp_ms, 
-                     player_puuid, player_name, player_team, loc_x, loc_y, view_radians)
+                    (
+                        location_id, kill_id, match_id, round_id, round_num,
+                        timestamp_ms, player_puuid, player_name, player_team,
+                        loc_x, loc_y, view_radians
+                    )
                 )
-            
+
             total_kills += 1
             match_kill_counter += 1
-        
-        # Insert rounds with all fields
+
         for round_id, round_info in rounds_dict.items():
-            cur.execute(
-                "INSERT OR IGNORE INTO rounds VALUES (?,?,?,?,?,?,?,?,?)",
-                (round_id, round_info['match_id'], round_info['round_num'], 
-                 round_info['side'], round_info['winner'], 
-                 round_info.get('result'), round_info.get('plant_x'), 
-                 round_info.get('plant_y'), round_info.get('plant_time_ms'))
-            )
-    
+            cur.execute("""
+                INSERT OR REPLACE INTO rounds
+                (round_id, match_id, round_num, side, winner, result, plant_site, plant_x, plant_y, plant_time_ms)
+                VALUES (?,?,?,?,?,?,?,?,?,?)
+            """, (
+                round_id,
+                round_info["match_id"],
+                round_info["round_num"],
+                round_info["side"],
+                round_info["winner"],
+                round_info["result"],
+                round_info.get("plant_site"),
+                round_info.get("plant_x"),
+                round_info.get("plant_y"),
+                round_info.get("plant_time_ms"),
+            ))
+
     conn.commit()
     conn.close()
     print(f"[data_loader] Inserted {total_kills} kill events from {matches_processed} match(es).")
 
 
 def compute_spawn_centroids(db_path: str = DB_PATH) -> dict:
-    """
-    Computes spawn centroid locations by clustering first kills per map/side/agent.
-    Uses the first kill position for each agent on each side of each map.
-    
-    Returns
-    -------
-    dict
-        Structure: {map_name -> {side -> {agent -> {"x": float, "y": float}}}}
-    """
     conn = sqlite3.connect(db_path)
     conn.row_factory = sqlite3.Row
     cur = conn.cursor()
-    
+
     centroids = {}
-    
+
     query = """
         SELECT m.map, r.side, k.killer_agent, k.killer_location_x, k.killer_location_y
         FROM kills k
@@ -539,24 +518,18 @@ def compute_spawn_centroids(db_path: str = DB_PATH) -> dict:
         WHERE k.killer_location_x IS NOT NULL AND k.killer_location_y IS NOT NULL
         ORDER BY m.map, r.side, k.killer_agent, k.timestamp_ms
     """
-    
+
     for row in cur.execute(query):
         map_name = row["map"]
         side = row["side"]
         agent = row["killer_agent"]
         x = row["killer_location_x"]
         y = row["killer_location_y"]
-        
-        # Initialize dict structure if needed
-        if map_name not in centroids:
-            centroids[map_name] = {}
-        if side not in centroids[map_name]:
-            centroids[map_name][side] = {}
-        
-        # Record first occurrence (earliest kill)
+
+        centroids.setdefault(map_name, {}).setdefault(side, {})
         if agent not in centroids[map_name][side]:
             centroids[map_name][side][agent] = {"x": x, "y": y}
-    
+
     conn.close()
     return centroids
 
@@ -578,6 +551,7 @@ def generate_player_predictions(db_path: str = DB_PATH) -> None:
     conn.row_factory = sqlite3.Row
     cur = conn.cursor()
 
+
     cur.execute("""
         CREATE TABLE IF NOT EXISTS player_predictions (
             prediction_id  TEXT PRIMARY KEY,
@@ -594,6 +568,7 @@ def generate_player_predictions(db_path: str = DB_PATH) -> None:
         )
     """)
     conn.commit()
+
 
     cur.execute("DELETE FROM player_predictions")
     conn.commit()
@@ -615,9 +590,8 @@ def generate_player_predictions(db_path: str = DB_PATH) -> None:
         map_name  = round_row["map"]
         round_id  = round_row["round_id"]
         round_num = round_row["round_num"]
-        side      = round_row["side"]
+        side = round_row["side"]
 
-        # Get all players in this round
         players_query = """
             SELECT DISTINCT
                 pl.player_name,
@@ -702,17 +676,7 @@ def generate_player_predictions(db_path: str = DB_PATH) -> None:
 # ── Loaders ───────────────────────────────────────────────────────────────────
 
 def load_kills(db_path: str = DB_PATH) -> pd.DataFrame:
-    """
-    Loads all kill events joined with round metadata into a single DataFrame.
-
-    Returns
-    -------
-    pd.DataFrame with columns:
-        kill_id, round_id, match_id, killer, victim, killer_agent,
-        site, timestamp_sec, is_first_blood,
-        round_num, side, map
-    """
-    conn  = sqlite3.connect(db_path)
+    conn = sqlite3.connect(db_path)
     query = """
         SELECT
             k.kill_id,
@@ -737,26 +701,10 @@ def load_kills(db_path: str = DB_PATH) -> pd.DataFrame:
     return df
 
 
-def load_kills_for_players(players: list,
-                           last_n: int = 50,
-                           db_path: str = DB_PATH) -> pd.DataFrame:
-    """
-    Loads the most recent `last_n` matches for a specific list of players.
-
-    Parameters
-    ----------
-    players : list of player identifiers (strings)
-    last_n  : maximum number of matches to include per player
-    db_path : path to the SQLite database
-
-    Returns
-    -------
-    pd.DataFrame - same schema as load_kills()
-    """
-    conn        = sqlite3.connect(db_path)
+def load_kills_for_players(players: list, last_n: int = 50, db_path: str = DB_PATH) -> pd.DataFrame:
+    conn = sqlite3.connect(db_path)
     placeholders = ",".join("?" * len(players))
 
-    # Grab the last `last_n` distinct match IDs for these players
     match_query = f"""
         SELECT DISTINCT k.match_id
         FROM kills k
@@ -773,7 +721,7 @@ def load_kills_for_players(players: list,
         return pd.DataFrame()
 
     mid_ph = ",".join("?" * len(match_ids))
-    query  = f"""
+    query = f"""
         SELECT
             k.kill_id,
             k.round_id,
@@ -800,23 +748,8 @@ def load_kills_for_players(players: list,
 
 
 def load_kill_locations(kill_id: str, db_path: str = DB_PATH) -> dict:
-    """
-    Loads all location data for a specific kill event.
-    
-    Parameters
-    ----------
-    kill_id : str
-        The kill ID to retrieve locations for
-    db_path : str
-        Path to the SQLite database
-    
-    Returns
-    -------
-    dict with 'killer', 'victim', and 'players' locations
-    """
     conn = sqlite3.connect(db_path)
-    
-    # Get killer and victim locations
+
     kill_query = """
         SELECT killer, killer_location_x, killer_location_y,
                victim, victim_location_x, victim_location_y
@@ -824,52 +757,36 @@ def load_kill_locations(kill_id: str, db_path: str = DB_PATH) -> dict:
         WHERE kill_id = ?
     """
     kill_result = pd.read_sql_query(kill_query, conn, params=[kill_id])
-    
-    # Get all player locations
+
     player_query = """
         SELECT player_name, location_x, location_y
         FROM player_locations
         WHERE kill_id = ?
     """
     players = pd.read_sql_query(player_query, conn, params=[kill_id])
-    
+
     conn.close()
-    
+
     if kill_result.empty:
         return None
-    
+
     row = kill_result.iloc[0]
     return {
-        'killer': {
-            'name': row['killer'],
-            'location_x': row['killer_location_x'],
-            'location_y': row['killer_location_y']
+        "killer": {
+            "name": row["killer"],
+            "location_x": row["killer_location_x"],
+            "location_y": row["killer_location_y"]
         },
-        'victim': {
-            'name': row['victim'],
-            'location_x': row['victim_location_x'],
-            'location_y': row['victim_location_y']
+        "victim": {
+            "name": row["victim"],
+            "location_x": row["victim_location_x"],
+            "location_y": row["victim_location_y"]
         },
-        'all_players': players.to_dict('records')
+        "all_players": players.to_dict("records")
     }
 
 
 def load_round_locations(round_id: str, db_path: str = DB_PATH) -> pd.DataFrame:
-    """
-    Loads all player locations for every kill in a specific round.
-    Useful for positioning analysis and heatmaps.
-    
-    Parameters
-    ----------
-    round_id : str
-        The round ID (e.g., "match_0000_r05")
-    db_path : str
-        Path to the SQLite database
-    
-    Returns
-    -------
-    pd.DataFrame with kill_id, player_name, location_x, location_y
-    """
     conn = sqlite3.connect(db_path)
     query = """
         SELECT pl.kill_id, pl.player_name, pl.location_x, pl.location_y

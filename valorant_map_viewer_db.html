@@ -279,6 +279,30 @@ function toCanvas(x, y, coordType = 'raw') {
   ];
 }
 
+function fromCanvas(cx, cy) {
+  // Returns normalized [0, 1] coordinates (not raw in-game coords).
+  const vp = getImageViewport();
+  const cal = getCalibration();
+
+  let nx = (cx - vp.x) / vp.w;
+  let ny = (cy - vp.y) / vp.h;
+
+  // Remove calibration first
+  nx = (nx - cal.offsetX) / cal.scaleX;
+  ny = (ny - cal.offsetY) / cal.scaleY;
+
+  // Undo rotation (only applies to maps configured with rotation)
+  [nx, ny] = undoRotation(nx, ny, cal.rotation);
+  ny = 1 - ny;
+
+  // Return normalized coords (in-game coords not recoverable here without scalars)
+  return [
+    Math.round(nx * 10000) / 10000,
+    Math.round(ny * 10000) / 10000
+  ];
+}
+
+
 function getFacingUnitVector(player) {
   if (player.r === null || player.r === undefined || Number.isNaN(Number(player.r))) {
     return null;
