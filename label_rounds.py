@@ -46,8 +46,7 @@ LABEL_NAMES = {
     2: "A Split",
     3: "B Split",
     4: "Default",
-    5: "Fake",
-    6: "Slow Execute",
+    5: "Slow Execute",
 }
 
 # ── Heuristic thresholds ──────────────────────────────────────────────────────
@@ -114,8 +113,8 @@ def infer_site_from_coords(
     site_centroids: dict[str, dict[str, tuple[float, float]]],
 ) -> str:
     """
-    Infer whether a coordinate is closer to A or B for a given map,
-    based on planted-site centroids from the dataset.
+    Infer A / B / MID from coordinates.
+    MID is assigned when the point is not clearly close to either planted-site centroid.
     """
     if x is None or y is None or pd.isna(x) or pd.isna(y):
         return ""
@@ -130,7 +129,16 @@ def infer_site_from_coords(
     d_a = float(np.hypot(x - ax, y - ay))
     d_b = float(np.hypot(x - bx, y - by))
 
-    # If one centroid is clearly closer, assign it
+    # midpoint between the two planted-site centroids
+    mid_x = (ax + bx) / 2.0
+    mid_y = (ay + by) / 2.0
+    d_mid = float(np.hypot(x - mid_x, y - mid_y))
+
+    # If close to midpoint compared to site distances, call it MID
+    # Tunable factor: smaller = harder to call MID
+    if d_mid < 1.00 * min(d_a, d_b):
+        return "MID"
+
     if d_a < d_b:
         return "A"
     if d_b < d_a:
@@ -210,64 +218,45 @@ def classify_round(round_row: pd.Series, kills_df: pd.DataFrame) -> tuple[int, s
 
     # ── Slow Execute ─────────────────────────────────────────────────────────
     if plant_time_ms is not None and plant_time_ms >= LATE_THRESHOLD_MS:
-        return 6, LABEL_NAMES[6], 0.82
+        return 5, LABEL_NAMES[5], 0.82
 
     if first_kill_ms is not None and first_kill_ms >= LATE_THRESHOLD_MS:
-        return 6, LABEL_NAMES[6], 0.75
+        return 5, LABEL_NAMES[5], 0.75
+    
+    # ── Split ────────────────────────────────────────────────────────────────
+    # New definition:
+    # A Split = early MID + A pressure, final commit A
+    # B Split = early MID + B pressure, final commit B
+    if final_site in {"A", "B"}:
+        early_mid = int((early["event_site"] == "MID").sum())
+        early_a = int((early["event_site"] == "A").sum())
+        early_b = int((early["event_site"] == "B").sum())
+
+        if final_site == "A":
+            if early_mid >= 1 and early_a >= 1 and (early_mid + early_a) >= 3:
+                return 2, LABEL_NAMES[2], 0.70
+
+        if final_site == "B":
+            if early_mid >= 1 and early_b >= 1 and (early_mid + early_b) >= 3:
+                return 3, LABEL_NAMES[3], 0.70
 
     # ── Rush ─────────────────────────────────────────────────────────────────
-    if final_site == "A":
-        if first_kill_ms is not None and first_kill_ms <= RUSH_THRESHOLD_MS:
-            if early_total == 0 or (final_early / max(1, early_total)) >= 0.75:
-                return 0, LABEL_NAMES[0], 0.80
+    # Strong rush = early first kill + heavy early final-site concentration + little MID presence
+    if final_site in {"A", "B"} and first_kill_ms is not None and first_kill_ms <= RUSH_THRESHOLD_MS:
+        early_known_total = int((early["event_site"].isin(["A", "B", "MID"])).sum())
+        early_mid = int((early["event_site"] == "MID").sum())
+        early_final = int((early["event_site"] == final_site).sum())
 
-    if final_site == "B":
-        if first_kill_ms is not None and first_kill_ms <= RUSH_THRESHOLD_MS:
-            if early_total == 0 or (final_early / max(1, early_total)) >= 0.75:
-                return 1, LABEL_NAMES[1], 0.80
+        final_ratio = early_final / max(1, early_known_total)
+        mid_ratio = early_mid / max(1, early_known_total)
 
-    # ── Fake ─────────────────────────────────────────────────────────────────
-    # Strong early pressure opposite final site, then later commitment to final site
-    if final_site in {"A", "B"} and early_total >= MIN_KNOWN_EARLY_EVENTS and opp_site:
-        opp_ratio = opp_early / max(1, early_total)
-        late_final_ratio = late_final / max(1, late_total) if late_total > 0 else 0.0
+        if final_site == "A":
+            if final_ratio >= 0.80 and mid_ratio <= 0.15:
+                return 0, LABEL_NAMES[0], 0.82
 
-        # Also require a timing switch
-        opp_times = early_known.loc[early_known["event_site"] == opp_site, "timestamp_ms"]
-        final_times = df.loc[df["event_site"] == final_site, "timestamp_ms"]
-
-        if not opp_times.empty and not final_times.empty:
-            gap = float(final_times.min()) - float(opp_times.max())
-        else:
-            gap = 0.0
-
-        if (
-            opp_ratio >= FAKE_OTHER_SITE_RATIO_MIN
-            and late_total >= 1
-            and late_final_ratio >= FINAL_SITE_DOMINANCE_MIN
-            and gap >= FAKE_SWITCH_GAP_MS
-        ):
-            return 5, LABEL_NAMES[5], 0.72
-
-    # ── Split ────────────────────────────────────────────────────────────────
-    # Approximation: meaningful early action on both sites, but eventual commit to one
-    if final_site == "A" and early_total >= MIN_KNOWN_EARLY_EVENTS:
-        opp_ratio = early_b / max(1, early_total)
-        final_ratio = early_a / max(1, early_total)
-        if (
-            SPLIT_OTHER_SITE_RATIO_MIN <= opp_ratio <= SPLIT_OTHER_SITE_RATIO_MAX
-            and final_ratio > opp_ratio
-        ):
-            return 2, LABEL_NAMES[2], 0.66
-
-    if final_site == "B" and early_total >= MIN_KNOWN_EARLY_EVENTS:
-        opp_ratio = early_a / max(1, early_total)
-        final_ratio = early_b / max(1, early_total)
-        if (
-            SPLIT_OTHER_SITE_RATIO_MIN <= opp_ratio <= SPLIT_OTHER_SITE_RATIO_MAX
-            and final_ratio > opp_ratio
-        ):
-            return 3, LABEL_NAMES[3], 0.66
+        if final_site == "B":
+            if final_ratio >= 0.80 and mid_ratio <= 0.15:
+                return 1, LABEL_NAMES[1], 0.82
 
     # ── Default ──────────────────────────────────────────────────────────────
     return 4, LABEL_NAMES[4], 0.55

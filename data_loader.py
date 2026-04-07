@@ -188,9 +188,9 @@ def _safe_site(site_value) -> str | None:
     if site_value is None:
         return None
     s = str(site_value).strip().upper()
-    if s in {"A", "A SITE", "A-SITE", "ALPHA"}:
+    if s in {"A", "A SITE", "A-SITE"}:
         return "A"
-    if s in {"B", "B SITE", "B-SITE", "BRAVO"}:
+    if s in {"B", "B SITE", "B-SITE"}:
         return "B"
     return None
 
