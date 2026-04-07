@@ -40,6 +40,7 @@ if __name__ == "__main__":
     print("  [1] Load all JSON files")
     print("  [2] Interactively select a file")
     print("  [3] Delete loaded JSON data from DB tables")
+    print("  [4] Load 1 games from each map (Bind, Haven, Split) - 5 total")
     print("  [q] Quit")
 
     choice = input("Select option (1, 2, 3, or q): ").strip().lower()
@@ -53,6 +54,24 @@ if __name__ == "__main__":
         prompt_for_file_selection("json")
     elif choice == '3':
         clear_loaded_json_data()
+    elif choice == '4':
+        bind_files = [
+            "json/Bind/0c442f72-11ba-4929-a111-d24b14424fee.json"
+        ]
+        pearl_files = [
+            "json/Pearl/0a8b2cd5-afe8-4dea-b10b-50e9a22950e1.json"
+        ]
+        split_files = [
+            "json/Split/0cd106fa-e1bb-4f23-8e6b-24c179fecdd3.json"
+        ]
+        fracture_files = [
+            "json/Fracture/4cf0eb05-0832-46f6-b43b-557645215d6d.json"
+        ]
+        breeze_files = [
+            "json/Breeze/0aee7eec-87b8-44dc-9923-c3e5c40d4b2d.json"
+        ]
+        for path in bind_files + pearl_files + split_files + fracture_files + breeze_files:
+            load_from_json_file(path)
     else:
         print("Invalid choice. Defaulting to 1 Bind file.")
         bind_files = [
