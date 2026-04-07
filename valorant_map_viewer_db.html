@@ -257,6 +257,15 @@ function normalizePredictionCoordSpace(x, y) {
   return [nx, ny];
 }
 
+function normalizedToGameCoords(nx, ny) {
+  const scalars = MAP_SCALARS[currentMap];
+  if (!scalars) return [nx, ny];
+
+  const x = (nx - scalars.xScalarToAdd) / scalars.xMultiplier;
+  const y = (ny - scalars.yScalarToAdd) / scalars.yMultiplier;
+  return [x, y];
+}
+
 function toCanvas(x, y, coordType = 'raw') {
   const vp = getImageViewport();
   const cal = getCalibration();
@@ -279,27 +288,34 @@ function toCanvas(x, y, coordType = 'raw') {
   ];
 }
 
+function undoRotation(nx, ny, rotation) {
+  if (rotation === 90)  return [1 - ny, nx];
+  if (rotation === 180) return [1 - nx, 1 - ny];
+  if (rotation === 270) return [ny, 1 - nx];
+  return [nx, ny];
+}
+
 function fromCanvas(cx, cy) {
-  // Returns normalized [0, 1] coordinates (not raw in-game coords).
   const vp = getImageViewport();
   const cal = getCalibration();
 
   let nx = (cx - vp.x) / vp.w;
   let ny = (cy - vp.y) / vp.h;
 
-  // Remove calibration first
   nx = (nx - cal.offsetX) / cal.scaleX;
   ny = (ny - cal.offsetY) / cal.scaleY;
 
-  // Undo rotation (only applies to maps configured with rotation)
   [nx, ny] = undoRotation(nx, ny, cal.rotation);
   ny = 1 - ny;
 
-  // Return normalized coords (in-game coords not recoverable here without scalars)
-  return [
-    Math.round(nx * 10000) / 10000,
-    Math.round(ny * 10000) / 10000
-  ];
+  const [gameX, gameY] = normalizedToGameCoords(nx, ny);
+
+  return {
+    normalizedX: nx,
+    normalizedY: ny,
+    gameX,
+    gameY
+  };
 }
 
 
@@ -960,37 +976,64 @@ function setMode() {
 }
 
 pc.onmousemove = (e) => {
-  if (mode !== 'view') return;
   const rect = pc.getBoundingClientRect();
   const mx = e.clientX - rect.left, my = e.clientY - rect.top;
+  const vp = getImageViewport();
+
+  if (mx < vp.x || mx > vp.x + vp.w || my < vp.y || my > vp.y + vp.h) {
+    tip.style.display = 'none';
+    return;
+  }
+
+  const coords = fromCanvas(mx, my);
+  const normalizedX = coords.normalizedX.toFixed(4);
+  const normalizedY = coords.normalizedY.toFixed(4);
+  const gameX = coords.gameX.toFixed(2);
+  const gameY = coords.gameY.toFixed(2);
+
+  const coordHtml = `<span style="color:#64748b">Game:</span> (${gameX}, ${gameY})<br><span style="color:#64748b">Normalized:</span> (${normalizedX}, ${normalizedY})`;
+
+  if (mode !== 'view') {
+    tip.style.display = 'block';
+    tip.style.left = (e.clientX + 14) + 'px';
+    tip.style.top = (e.clientY - 10) + 'px';
+    tip.innerHTML = `<b>Map coordinates</b><br>${coordHtml}`;
+    return;
+  }
+
   const kills = getKills();
-  const players = currentKillIdx !== null ? kills[currentKillIdx]?.p||[] : kills.flatMap(k=>k.p);
+  const players = currentKillIdx !== null ? kills[currentKillIdx]?.p || [] : kills.flatMap(k => k.p);
   const victims = currentKillIdx !== null
     ? (kills[currentKillIdx]?.vic ? [kills[currentKillIdx].vic] : [])
     : kills.map(k => k.vic).filter(Boolean);
 
   let found = null, isVic = false, minD = 14;
   players.forEach(p => {
-    const [cx,cy] = toCanvas(p.x, p.y);
-    const d = Math.hypot(cx-mx, cy-my);
-    if (d < minD) { minD=d; found=p; isVic=false; }
+    const [cx, cy] = toCanvas(p.x, p.y);
+    const d = Math.hypot(cx - mx, cy - my);
+    if (d < minD) { minD = d; found = p; isVic = false; }
   });
   victims.forEach(v => {
-    const [cx,cy] = toCanvas(v.x, v.y);
-    const d = Math.hypot(cx-mx, cy-my);
-    if (d < minD) { minD=d; found=v; isVic=true; }
+    const [cx, cy] = toCanvas(v.x, v.y);
+    const d = Math.hypot(cx - mx, cy - my);
+    if (d < minD) { minD = d; found = v; isVic = true; }
   });
 
+  tip.style.display = 'block';
+  tip.style.left = (e.clientX + 14) + 'px';
+  tip.style.top = (e.clientY - 10) + 'px';
+
   if (found) {
-    tip.style.display='block'; tip.style.left=(e.clientX+14)+'px'; tip.style.top=(e.clientY-10)+'px';
     const deg = found.r === null || found.r === undefined || Number.isNaN(Number(found.r))
       ? 'Unknown'
       : ((Number(found.r) * 180 / Math.PI) % 360 + 360).toFixed(1) + '°';
     const statusLabel = isVic
       ? '<span style="color:#ef4444">☠ Victim</span>'
-      : `<span style="color:${found.t==='Blue'?'#60a5fa':'#f87171'}">${found.t}</span>`;
-    tip.innerHTML=`<b>${found.n}</b><br>${found.a} · ${statusLabel}<br><span style="color:#64748b">(${found.x.toFixed ? found.x.toFixed(4) : found.x}, ${found.y.toFixed ? found.y.toFixed(4) : found.y})</span>${isVic?'':('<br><span style="color:#64748b">Facing:</span> '+deg)}`;
-  } else { tip.style.display='none'; }
+      : `<span style="color:${found.t === 'Blue' ? '#60a5fa' : '#f87171'}">${found.t}</span>`;
+    tip.innerHTML = `<b>${found.n}</b><br>${found.a} · ${statusLabel}<br>${coordHtml}${isVic ? '' : ('<br><span style="color:#64748b">Facing:</span> ' + deg)}`;
+  } else {
+    tip.innerHTML = `<b>Map coordinates</b><br>${coordHtml}`;
+  }
 };
 pc.onmouseleave = () => { tip.style.display='none'; };
 
