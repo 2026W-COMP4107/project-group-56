@@ -21,6 +21,8 @@ import webbrowser
 from pathlib import Path
 from urllib.parse import urlparse
 
+from map_adjacency_graph.map_zones import ZONE_POLYGONS
+
 PORT = 8765
 ROOT = Path(__file__).resolve().parent
 DB_PATH = ROOT / "valorant.db"
@@ -329,6 +331,27 @@ class Handler(http.server.SimpleHTTPRequestHandler):
         elif parsed.path == "/api/predictions":
             try:
                 payload = load_player_predictions()
+                body = json.dumps(payload).encode("utf-8")
+                self.send_response(200)
+                self.send_header("Content-Type", "application/json; charset=utf-8")
+                self.send_header("Content-Length", str(len(body)))
+                self.end_headers()
+                self.wfile.write(body)
+            except Exception as exc:
+                body = json.dumps({"error": str(exc)}).encode("utf-8")
+                self.send_response(500)
+                self.send_header("Content-Type", "application/json; charset=utf-8")
+                self.send_header("Content-Length", str(len(body)))
+                self.end_headers()
+                self.wfile.write(body)
+            return
+        elif parsed.path == "/api/zones":
+            try:
+                payload = {
+                    map_name: zones
+                    for map_name, zones in ZONE_POLYGONS.items()
+                    if map_name in SUPPORTED_MAPS
+                }
                 body = json.dumps(payload).encode("utf-8")
                 self.send_response(200)
                 self.send_header("Content-Type", "application/json; charset=utf-8")

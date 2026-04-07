@@ -31,6 +31,8 @@ import math
 from pathlib import Path
 from datetime import datetime
 
+from attacker_predictions import generate_attacker_predictions
+
 DB_PATH = "valorant.db"
 
 AGENTS   = ["Astra", "Breach", "Brimstone", "Chamber", "Clove",
@@ -547,142 +549,10 @@ def compute_spawn_centroids(db_path: str = DB_PATH) -> dict:
 
 def generate_player_predictions(db_path: str = DB_PATH) -> None:
     """
-    Generate predicted player positions using backwards-trace logic:
-    
-    For each attacker:
-    1. Find their first kill location
-    2. Determine which zone the kill happened in (using point-in-polygon)
-    3. Trace BACKWARDS (south) through the adjacency graph to find starting position
-    4. Use that starting position as the pred icted spawn location
-    
-    This logic is map-aware and uses bind_attacker_predictions.py for Bind
-    (which has full topology). For other maps, use this fallback approach.
+    Generate attacker position predictions for all supported maps using the
+    shared topology-aware predictor in `attacker_predictions.py`.
     """
-    conn = sqlite3.connect(db_path)
-    conn.row_factory = sqlite3.Row
-    cur = conn.cursor()
-
-
-    cur.execute("""
-        CREATE TABLE IF NOT EXISTS player_predictions (
-            prediction_id  TEXT PRIMARY KEY,
-            match_id       TEXT,
-            round_id       TEXT,
-            round_num      INTEGER,
-            player_name    TEXT,
-            agent          TEXT,
-            team           TEXT,
-            time_bucket    TEXT,
-            predicted_x    REAL,
-            predicted_y    REAL,
-            confidence     REAL
-        )
-    """)
-    conn.commit()
-
-
-    cur.execute("DELETE FROM player_predictions")
-    conn.commit()
-
-    # Get all rounds
-    rounds_query = """
-        SELECT m.match_id, m.map, r.round_id, r.round_num, r.side
-        FROM   rounds  r
-        JOIN   matches m ON m.match_id = r.match_id
-        WHERE  m.map != 'Bind'
-        ORDER  BY m.match_id, r.round_num
-    """
-
-    prediction_id_counter = 0
-    predictions: list[tuple] = []
-
-    for round_row in conn.execute(rounds_query):
-        match_id  = round_row["match_id"]
-        map_name  = round_row["map"]
-        round_id  = round_row["round_id"]
-        round_num = round_row["round_num"]
-        side = round_row["side"]
-
-        players_query = """
-            SELECT DISTINCT
-                pl.player_name,
-                pl.team,
-                k.killer_agent AS kill_agent
-            FROM   player_locations pl
-            JOIN   kills            k  ON pl.kill_id = k.kill_id
-            WHERE  k.round_id = ?
-        """
-        players: dict[str, dict] = {}
-        for p_row in conn.execute(players_query, (round_id,)):
-            pname = p_row["player_name"]
-            if pname not in players:
-                agent = p_row["kill_agent"] or "Unknown"
-                players[pname] = {"team": p_row["team"], "agent": agent}
-
-        # Get first kill for each player (earliest timestamp)
-        kills_query = """
-            SELECT k.timestamp_ms,
-                   k.killer,
-                   k.killer_location_x,
-                   k.killer_location_y
-            FROM   kills k
-            WHERE  k.round_id = ?
-            ORDER  BY k.timestamp_ms
-        """
-        first_kill_per_player: dict[str, tuple[float, float]] = {}
-        for k_row in conn.execute(kills_query, (round_id,)):
-            pname = k_row["killer"]
-            if pname not in first_kill_per_player:
-                x = k_row["killer_location_x"]
-                y = k_row["killer_location_y"]
-                if x is not None and y is not None:
-                    first_kill_per_player[pname] = (x, y)
-
-        # Generate predictions for each player
-        for pname, p_info in players.items():
-            agent = p_info["agent"]
-            team  = p_info["team"]
-
-            # Determine spawn location: if we have kill data, infer from first kill
-            # Otherwise use origin (0, 0) as fallback
-            if pname in first_kill_per_player:
-                kill_x, kill_y = first_kill_per_player[pname]
-                spawn_x, spawn_y = kill_x, kill_y
-                confidence = 0.90
-            else:
-                spawn_x, spawn_y = 0.0, 0.0
-                confidence = 0.50
-
-            # t=0-15s: spawn position
-            pred_id = f"pred_{prediction_id_counter:06d}"
-            prediction_id_counter += 1
-            predictions.append((
-                pred_id, match_id, round_id, round_num, pname, agent, team,
-                "0-15", spawn_x, spawn_y, confidence,
-            ))
-
-            # t=15-30s: use same spawn position (simple model)
-            for bucket in ["15-30"]:
-                pred_id = f"pred_{prediction_id_counter:06d}"
-                prediction_id_counter += 1
-                predictions.append((
-                    pred_id, match_id, round_id, round_num, pname, agent, team,
-                    bucket, spawn_x, spawn_y, confidence * 0.8,
-                ))
-
-    cur.executemany(
-        """
-        INSERT OR IGNORE INTO player_predictions
-            (prediction_id, match_id, round_id, round_num,
-             player_name, agent, team,
-             time_bucket, predicted_x, predicted_y, confidence)
-        VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
-        """,
-        predictions,
-    )
-    conn.commit()
-    conn.close()
-    print(f"[data_loader] Generated {len(predictions)} player position predictions (non-Bind maps).")
+    generate_attacker_predictions(db_path)
 
 # ── Loaders ───────────────────────────────────────────────────────────────────
 
