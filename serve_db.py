@@ -19,7 +19,7 @@ import os
 import sqlite3
 import webbrowser
 from pathlib import Path
-from urllib.parse import urlparse
+from urllib.parse import parse_qs, urlparse
 
 from map_adjacency_graph.map_zones import ZONE_POLYGONS
 
@@ -27,6 +27,7 @@ PORT = 8765
 ROOT = Path(__file__).resolve().parent
 DB_PATH = ROOT / "valorant.db"
 VIEWER_FILE = ROOT / "valorant_map_viewer_db.html"
+FAVICON_FILE = ROOT / "favicon.ico"
 SUPPORTED_MAPS = ["Bind", "Split", "Breeze", "Fracture", "Pearl"]
 
 # Conversion factors from the Valorant API (dash.valorant-api.com/endpoints/maps).
@@ -307,13 +308,130 @@ def load_raw_from_db(db_path: Path = DB_PATH) -> dict:
     finally:
         conn.close()
 
+def load_raw_from_db_with_labels(db_path: Path = DB_PATH) -> dict:
+    if not db_path.exists():
+        raise FileNotFoundError(f"Database not found: {db_path}")
+
+    conn = sqlite3.connect(db_path)
+    conn.row_factory = sqlite3.Row
+    try:
+        # Get kill and location data (same as before)
+        raw = load_raw_from_db(db_path)
+
+        # Fetch round labels for all rounds in supported maps
+        round_label_rows = conn.execute(f"""
+            SELECT
+                rl.round_id,
+                r.match_id,
+                r.round_num,
+                m.map AS map_name,
+                rl.label,
+                rl.label_name,
+                rl.confidence
+            FROM round_labels rl
+            JOIN rounds r ON rl.round_id = r.round_id
+            JOIN matches m ON r.match_id = m.match_id
+            WHERE m.map IN ({','.join('?' for _ in SUPPORTED_MAPS)})
+        """, SUPPORTED_MAPS).fetchall()
+
+        # Attach labels to the correct round in raw
+        for row in round_label_rows:
+            map_name = row["map_name"]
+            match_id = row["match_id"]
+            round_num = str(row["round_num"])
+
+            if map_name in raw["matches"] if "matches" in raw else {} and \
+               match_id in raw[map_name]["matches"] and \
+               round_num in raw[map_name]["matches"][match_id]["rounds"]:
+
+                raw[map_name]["matches"][match_id]["rounds"][round_num]["round_label"] = {
+                    "label": row["label"],
+                    "label_name": row["label_name"],
+                    "confidence": row["confidence"]
+                }
+
+        return raw
+    finally:
+        conn.close()
+
+
+def load_execute_prediction(
+    map_name: str,
+    match_id: str | None,
+    round_num: int,
+    db_path: Path = DB_PATH,
+):
+    conn = sqlite3.connect(db_path)
+    conn.row_factory = sqlite3.Row
+
+    try:
+        base_sql = """
+            SELECT
+                rl.label,
+                rl.label_name,
+                rl.confidence,
+                r.round_num,
+                r.side,
+                m.map AS map_name,
+                r.match_id
+            FROM round_labels rl
+            JOIN rounds r ON rl.round_id = r.round_id
+            JOIN matches m ON r.match_id = m.match_id
+            WHERE m.map = ?
+            AND r.round_num = ?
+        """
+        params: list[object] = [map_name, round_num]
+
+        if match_id:
+            base_sql += " AND r.match_id = ?"
+            params.append(match_id)
+
+        base_sql += """
+            ORDER BY
+                CASE WHEN ? IS NOT NULL AND r.match_id = ? THEN 0 ELSE 1 END,
+                COALESCE(rl.confidence, 0) DESC
+            LIMIT 1
+        """
+        params.extend([match_id, match_id])
+
+        row = conn.execute(base_sql, params).fetchone()
+
+        if row is None:
+            return None
+
+        confidence = float(row["confidence"] or 0.0)
+        round_num_value = int(row["round_num"])
+        attacking_team = "Red" if round_num_value < 12 else "Blue"
+
+        payload = {
+            "round": round_num_value,
+            "map": row["map_name"],
+            "match_id": row["match_id"],
+            "side": row["side"],
+            "attacking_team": attacking_team,
+            "predicted_label": int(row["label"]),
+            "predicted_label_name": row["label_name"],
+            "confidence": confidence,
+            "top_predictions": [
+                {
+                    "label": row["label_name"],
+                    "confidence": confidence,
+                }
+            ],
+        }
+
+        return payload
+
+    finally:
+        conn.close()
 
 class Handler(http.server.SimpleHTTPRequestHandler):
     def do_GET(self):
         parsed = urlparse(self.path)
         if parsed.path == "/api/raw":
             try:
-                payload = load_raw_from_db()
+                # Use the version that includes round labels
+                payload = load_raw_from_db_with_labels()
                 body = json.dumps(payload).encode("utf-8")
                 self.send_response(200)
                 self.send_header("Content-Type", "application/json; charset=utf-8")
@@ -345,6 +463,51 @@ class Handler(http.server.SimpleHTTPRequestHandler):
                 self.end_headers()
                 self.wfile.write(body)
             return
+        elif parsed.path == "/api/predict":
+            try:
+                query = parse_qs(parsed.query)
+                map_name = (query.get("map") or [None])[0]
+                match_id = (query.get("match_id") or [None])[0]
+                round_value = (query.get("round") or [None])[0]
+
+                if not map_name:
+                    body = json.dumps({"error": "Missing required query parameter: map"}).encode("utf-8")
+                    self.send_response(400)
+                elif round_value is None:
+                    body = json.dumps({"error": "Missing required query parameter: round"}).encode("utf-8")
+                    self.send_response(400)
+                else:
+                    round_num = int(round_value)
+                    payload = load_execute_prediction(map_name, match_id, round_num)
+
+                    if payload is None:
+                        body = json.dumps({"error": "No prediction"}).encode("utf-8")
+                        self.send_response(404)
+                    else:
+                        body = json.dumps(payload).encode("utf-8")
+                        self.send_response(200)
+
+                self.send_header("Content-Type", "application/json; charset=utf-8")
+                self.send_header("Content-Length", str(len(body)))
+                self.end_headers()
+                self.wfile.write(body)
+
+            except ValueError:
+                body = json.dumps({"error": "Query parameter 'round' must be an integer"}).encode("utf-8")
+                self.send_response(400)
+                self.send_header("Content-Type", "application/json; charset=utf-8")
+                self.send_header("Content-Length", str(len(body)))
+                self.end_headers()
+                self.wfile.write(body)
+            except Exception as exc:
+                body = json.dumps({"error": str(exc)}).encode("utf-8")
+                self.send_response(500)
+                self.send_header("Content-Type", "application/json; charset=utf-8")
+                self.send_header("Content-Length", str(len(body)))
+                self.end_headers()
+                self.wfile.write(body)
+            return
+
         elif parsed.path == "/api/zones":
             try:
                 payload = {
@@ -396,6 +559,14 @@ class Handler(http.server.SimpleHTTPRequestHandler):
             self.end_headers()
             self.wfile.write(body)
             return
+        elif parsed.path == "/favicon.ico":
+            if FAVICON_FILE.exists():
+                return super().do_GET()
+
+            self.send_response(204)
+            self.end_headers()
+            return
+
         return super().do_GET()
 
     def log_message(self, format: str, *args):

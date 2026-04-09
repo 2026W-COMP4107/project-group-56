@@ -17,7 +17,7 @@ button.active{background:#3b82f6;border-color:#3b82f6;color:#fff;font-weight:500
 canvas{position:absolute;top:0;left:0}
 #img-canvas{image-rendering:pixelated}
 #player-canvas{cursor:crosshair}
-.sidebar{width:230px;background:#1e293b;border-left:1px solid #334155;overflow-y:auto;padding:10px;display:flex;flex-direction:column;gap:8px;flex-shrink:0}
+.sidebar{width:280px;background:#1e293b;border-left:1px solid #334155;overflow-y:auto;padding:10px;display:flex;flex-direction:column;gap:8px;flex-shrink:0}
 .card{background:#0f172a;border:1px solid #334155;border-radius:8px;padding:10px;font-size:12px}
 .card h3{font-size:10px;font-weight:600;color:#64748b;margin-bottom:8px;text-transform:uppercase;letter-spacing:.8px}
 .kill-item{padding:5px 4px;border-bottom:1px solid #1e293b;cursor:pointer;color:#94a3b8;font-size:11px;border-radius:4px}
@@ -29,6 +29,40 @@ canvas{position:absolute;top:0;left:0}
 .tip{position:fixed;background:#1e293b;border:1px solid #475569;border-radius:6px;padding:6px 10px;font-size:11px;pointer-events:none;display:none;z-index:999;max-width:180px;color:#e2e8f0;line-height:1.5}
 .img-status{position:absolute;top:8px;left:8px;background:rgba(0,0,0,.6);padding:4px 8px;border-radius:4px;font-size:10px;color:#f59e0b;pointer-events:none;z-index:10}
 input[type=range]{accent-color:#3b82f6;width:70px}
+.execute-card{display:flex;flex-direction:column;gap:10px}
+.execute-header{display:flex;align-items:flex-start;justify-content:space-between;gap:8px}
+.execute-round{font-size:18px;font-weight:700;color:#f8fafc}
+.execute-map{font-size:11px;color:#94a3b8;margin-top:2px}
+.execute-badge{padding:4px 8px;border-radius:999px;font-size:10px;font-weight:700;letter-spacing:.4px;text-transform:uppercase;border:1px solid #334155;background:#111827;color:#cbd5e1}
+.execute-badge.good{background:rgba(34,197,94,.12);border-color:rgba(34,197,94,.35);color:#86efac}
+.execute-badge.medium{background:rgba(245,158,11,.12);border-color:rgba(245,158,11,.35);color:#fcd34d}
+.execute-badge.low{background:rgba(239,68,68,.12);border-color:rgba(239,68,68,.35);color:#fca5a5}
+.execute-prediction-state{font-size:11px;color:#64748b;line-height:1.5}
+.execute-main{border:1px solid #334155;border-radius:10px;padding:12px;background:linear-gradient(180deg,rgba(30,41,59,.85),rgba(15,23,42,.95));box-shadow:inset 0 0 0 1px rgba(59,130,246,.08)}
+.execute-main.highlight-good{border-color:rgba(34,197,94,.45);box-shadow:0 0 0 1px rgba(34,197,94,.12), inset 0 0 0 1px rgba(34,197,94,.10)}
+.execute-main.highlight-medium{border-color:rgba(245,158,11,.45);box-shadow:0 0 0 1px rgba(245,158,11,.12), inset 0 0 0 1px rgba(245,158,11,.10)}
+.execute-main.highlight-low{border-color:rgba(239,68,68,.45);box-shadow:0 0 0 1px rgba(239,68,68,.12), inset 0 0 0 1px rgba(239,68,68,.10)}
+.execute-label-caption{font-size:10px;color:#64748b;text-transform:uppercase;letter-spacing:.8px;margin-bottom:6px}
+.execute-label{font-size:18px;font-weight:700;color:#f8fafc;line-height:1.25}
+.execute-confidence-line{margin-top:10px;display:flex;align-items:center;justify-content:space-between;gap:8px}
+.execute-confidence-label{font-size:11px;color:#94a3b8}
+.execute-confidence-value{font-size:18px;font-weight:700}
+.execute-confidence-value.good{color:#4ade80}
+.execute-confidence-value.medium{color:#fbbf24}
+.execute-confidence-value.low{color:#f87171}
+.execute-bar{height:8px;border-radius:999px;background:#111827;overflow:hidden;border:1px solid #1e293b;margin-top:8px}
+.execute-bar-fill{height:100%;border-radius:999px;transition:width .2s ease}
+.execute-bar-fill.good{background:linear-gradient(90deg,#16a34a,#4ade80)}
+.execute-bar-fill.medium{background:linear-gradient(90deg,#d97706,#fbbf24)}
+.execute-bar-fill.low{background:linear-gradient(90deg,#dc2626,#f87171)}
+.execute-subtitle{font-size:10px;color:#64748b;text-transform:uppercase;letter-spacing:.8px}
+.execute-top-list{display:flex;flex-direction:column;gap:8px}
+.execute-top-item{display:flex;flex-direction:column;gap:4px;padding:8px 10px;border:1px solid #1e293b;border-radius:8px;background:#111827}
+.execute-top-row{display:flex;align-items:center;justify-content:space-between;gap:8px}
+.execute-top-name{font-size:12px;color:#e2e8f0;font-weight:600}
+.execute-top-confidence{font-size:11px;color:#cbd5e1}
+.execute-top-bar{height:6px;border-radius:999px;background:#0f172a;overflow:hidden}
+.execute-top-fill{height:100%;border-radius:999px;background:linear-gradient(90deg,#3b82f6,#60a5fa)}
 </style>
 </head>
 <body>
@@ -75,6 +109,12 @@ input[type=range]{accent-color:#3b82f6;width:70px}
       <div class="legend-row"><span style="color:#94a3b8;font-size:14px;line-height:1">➜</span>Facing direction</div>
       <div class="legend-row" style="font-size:10px;color:#64748b;margin-top:4px">Agent icons load from<br><code style="color:#94a3b8">agent_icons/</code> folder</div>
     </div>
+
+    <div class="card execute-card">
+      <h3>AI Execute Prediction</h3>
+      <div id="execute-prediction"></div>
+    </div>
+
     <div class="card">
       <h3>Kill info</h3>
       <div id="kill-detail" style="color:#475569;font-size:11px;line-height:1.6">Select a kill above</div>
@@ -91,32 +131,7 @@ input[type=range]{accent-color:#3b82f6;width:70px}
 let RAW = {};
 let MAPS = [];
 let PREDICTIONS = {};
-let predictionTimeBucket = '0-15';  // default to 0-15 seconds
-
-async function loadRawFromDatabase() {
-  const res = await fetch('/api/raw');
-  if (!res.ok) throw new Error(`Failed to load match data: ${res.status}`);
-  RAW = await res.json();
-  MAPS = Object.keys(RAW);
-  if (!MAPS.length) throw new Error('Database returned no supported map data.');
-  if (!currentMap || !RAW[currentMap]) currentMap = MAPS[0];
-
-  const matchIds = Object.keys(RAW[currentMap].matches || {});
-  currentMatch = matchIds.length ? matchIds[0] : null;
-}
-
-async function loadPredictionsFromDatabase() {
-  try {
-    console.log('Loading predictions from database...');
-    const res = await fetch('/api/predictions');
-    if (!res.ok) throw new Error(`Failed to load predictions: ${res.status}`);
-    PREDICTIONS = await res.json();
-    console.log('Predictions loaded:', PREDICTIONS);
-  } catch (err) {
-    console.error('Error loading predictions:', err);
-    PREDICTIONS = {};
-  }
-}
+let predictionTimeBucket = '0-15';
 
 const AGENT_ABBR = {
   'Astra':'AS','Breach':'BR','Brimstone':'BI','Chamber':'CH','Clove':'CL',
@@ -130,9 +145,9 @@ const AGENT_ABBR = {
 const MAP_CALIBRATION = {
   Bind:     { rotation: 90, offsetX: 0.51, offsetY: 0.55, scaleX: 0.95, scaleY: 1 },
   Split:    { rotation: 0,  offsetX: -0.535, offsetY: 0.565, scaleX: 1, scaleY: 1 },
-  Breeze:   { rotation: 90,  offsetX: 0.29, offsetY: 0.29, scaleX: 1, scaleY: 1 },
-  Fracture: { rotation: 90,  offsetX: 0.73, offsetY: 0.73, scaleX: 1, scaleY: 1 },
-  Pearl:    { rotation: 90,  offsetX: 0.4, offsetY: 0.38, scaleX: 0.95, scaleY: 1 },
+  Breeze:   { rotation: 90, offsetX: 0.29, offsetY: 0.29, scaleX: 1, scaleY: 1 },
+  Fracture: { rotation: 90, offsetX: 0.73, offsetY: 0.73, scaleX: 1, scaleY: 1 },
+  Pearl:    { rotation: 90, offsetX: 0.4, offsetY: 0.38, scaleX: 0.95, scaleY: 1 },
 };
 
 const MAP_SCALARS = {
@@ -152,22 +167,181 @@ let mapImage = null;
 let mapOpacity = 0.8;
 let imageCache = {};
 
-// Agent icon support
 const AGENT_ICONS_FOLDER = 'agent_icons';
-const agentIconCache = {}; // agentName -> HTMLImageElement | null
+const agentIconCache = {};
+
+const wrap = document.getElementById('canvas-wrap');
+const ic = document.getElementById('img-canvas');
+const pc = document.getElementById('player-canvas');
+const ictx = ic.getContext('2d');
+const pctx = pc.getContext('2d');
+const tip = document.getElementById('tip');
+const imgStatus = document.getElementById('imgStatus');
+const executePredictionEl = document.getElementById('execute-prediction');
+
+const mapSel = document.getElementById('mapSel');
+const matchSel = document.getElementById('matchSel');
+const roundSel = document.getElementById('roundSel');
+const killSel = document.getElementById('killSel');
+
+function escapeHtml(value) {
+  const div = document.createElement('div');
+  div.textContent = String(value ?? '');
+  return div.innerHTML;
+}
+
+function getConfidenceTier(confidence) {
+  if (confidence >= 0.7) return 'good';
+  if (confidence >= 0.45) return 'medium';
+  return 'low';
+}
+
+function formatConfidencePercent(confidence) {
+  return `${Math.round((Number(confidence) || 0) * 100)}%`;
+}
+
+function renderExecutePredictionLoading() {
+  executePredictionEl.innerHTML = '<div class="execute-prediction-state">Loading round prediction…</div>';
+}
+
+function renderExecutePredictionEmpty(message = 'Select a round to see prediction') {
+  executePredictionEl.innerHTML = `<div class="execute-prediction-state">${escapeHtml(message)}</div>`;
+}
+
+function renderExecutePredictionError(message) {
+  executePredictionEl.innerHTML = `<div class="execute-prediction-state" style="color:#fca5a5">${escapeHtml(message)}</div>`;
+}
+
+function renderExecutePredictionCard(prediction) {
+  const confidence = Number(prediction.confidence) || 0;
+  const confidenceTier = getConfidenceTier(confidence);
+  const confidencePercent = formatConfidencePercent(confidence);
+  const round = prediction.round ?? currentRound ?? '—';
+  const mapName = prediction.map ?? currentMap ?? 'Unknown';
+  const attackingTeam = prediction.attacking_team || (Number(round) < 12 ? 'Red' : 'Blue');
+  const executeName = prediction.predicted_label_name || 'Unknown Execute';
+  const topPredictions = Array.isArray(prediction.top_predictions)
+    ? prediction.top_predictions.slice(0, 2)
+    : [];
+
+  const badgeText = confidenceTier === 'good'
+    ? 'High confidence'
+    : confidenceTier === 'medium'
+      ? 'Moderate confidence'
+      : 'Low confidence';
+
+  const topPredictionsHtml = topPredictions.length > 1 ? `
+    <div class="execute-subtitle">Top executes</div>
+    <div class="execute-top-list">
+      ${topPredictions.map((item) => {
+        const itemConfidence = Number(item.confidence) || 0;
+        return `
+          <div class="execute-top-item">
+            <div class="execute-top-row">
+              <div class="execute-top-name">${escapeHtml(item.label || 'Unknown Execute')}</div>
+              <div class="execute-top-confidence">${formatConfidencePercent(itemConfidence)}</div>
+            </div>
+            <div class="execute-top-bar">
+              <div class="execute-top-fill" style="width:${Math.max(0, Math.min(100, itemConfidence * 100))}%"></div>
+            </div>
+          </div>
+        `;
+      }).join('')}
+    </div>
+  ` : '';
+
+  executePredictionEl.innerHTML = `
+    <div class="execute-header">
+      <div>
+        <div class="execute-round">Round ${escapeHtml(round)}</div>
+        <div class="execute-map">Map: ${escapeHtml(mapName)} · Attacking Team: ${escapeHtml(attackingTeam)}</div>
+      </div>
+      <div class="execute-badge ${confidenceTier}">${badgeText}</div>
+    </div>
+
+    <div class="execute-main highlight-${confidenceTier}">
+      <div class="execute-label-caption">Most Likely Execute</div>
+      <div class="execute-label">${escapeHtml(executeName)}</div>
+
+      <div class="execute-confidence-line">
+        <div class="execute-confidence-label">Confidence</div>
+        <div class="execute-confidence-value ${confidenceTier}">${confidencePercent}</div>
+      </div>
+      <div class="execute-bar">
+        <div class="execute-bar-fill ${confidenceTier}" style="width:${Math.max(0, Math.min(100, confidence * 100))}%"></div>
+      </div>
+    </div>
+
+    ${topPredictionsHtml}
+  `;
+}
+
+async function loadRawFromDatabase() {
+  const res = await fetch('/api/raw');
+  if (!res.ok) throw new Error(`Failed to load match data: ${res.status}`);
+  RAW = await res.json();
+  MAPS = Object.keys(RAW);
+  if (!MAPS.length) throw new Error('Database returned no supported map data.');
+  if (!currentMap || !RAW[currentMap]) currentMap = MAPS[0];
+
+  const matchIds = Object.keys(RAW[currentMap].matches || {});
+  currentMatch = matchIds.length ? matchIds[0] : null;
+}
+
+async function loadPredictionsFromDatabase() {
+  try {
+    const res = await fetch('/api/predictions');
+    if (!res.ok) throw new Error(`Failed to load predictions: ${res.status}`);
+    PREDICTIONS = await res.json();
+  } catch (err) {
+    console.error('Error loading predictions:', err);
+    PREDICTIONS = {};
+  }
+}
+
+async function updateExecutePrediction() {
+  if (currentRound === null || !currentMap) {
+    renderExecutePredictionEmpty();
+    return;
+  }
+
+  renderExecutePredictionLoading();
+
+  const params = new URLSearchParams({
+    map: currentMap,
+    round: String(currentRound)
+  });
+
+  if (currentMatch) {
+    params.set('match_id', currentMatch);
+  }
+
+  try {
+    const res = await fetch(`/api/predict?${params.toString()}`);
+    if (res.status === 404) {
+      renderExecutePredictionEmpty(`No prediction available for Round ${currentRound}.`);
+      return;
+    }
+
+    if (!res.ok) {
+      const errorPayload = await res.json().catch(() => ({}));
+      throw new Error(errorPayload.error || `Prediction request failed: ${res.status}`);
+    }
+
+    const payload = await res.json();
+    renderExecutePredictionCard(payload);
+  } catch (err) {
+    console.error('Error loading execute prediction:', err);
+    renderExecutePredictionError(err.message || 'Could not load execute prediction.');
+  }
+}
 
 function loadAgentIcon(agentName) {
   if (agentName in agentIconCache) return;
 
   agentIconCache[agentName] = null;
-
   const img = new Image();
-
-  const safe = agentName
-    .trim()
-    .replace(/\//g, '')
-    .replace(/[^a-zA-Z0-9_-]/g, '');
-
+  const safe = agentName.trim().replace(/\//g, '').replace(/[^a-zA-Z0-9_-]/g, '');
   const safeLower = safe.toLowerCase();
 
   const paths = [
@@ -178,7 +352,6 @@ function loadAgentIcon(agentName) {
   ];
 
   let tried = 0;
-
   function tryNext() {
     if (tried >= paths.length) return;
     img.src = paths[tried++];
@@ -201,27 +374,10 @@ function preloadAgentIcons() {
   });
 }
 
-const wrap = document.getElementById('canvas-wrap');
-const ic = document.getElementById('img-canvas');
-const pc = document.getElementById('player-canvas');
-const ictx = ic.getContext('2d');
-const pctx = pc.getContext('2d');
-const tip = document.getElementById('tip');
-const imgStatus = document.getElementById('imgStatus');
-
 function abbr(a) { return AGENT_ABBR[a] || a.slice(0,2).toUpperCase(); }
-function getMapData() {
-  return RAW[currentMap] || { matches: {} };
-}
-
-function getMatches() {
-  return Object.keys(getMapData().matches || {}).sort();
-}
-
-function getMatchData() {
-  if (!currentMatch) return null;
-  return getMapData().matches[currentMatch] || null;
-}
+function getMapData() { return RAW[currentMap] || { matches: {} }; }
+function getMatches() { return Object.keys(getMapData().matches || {}).sort(); }
+function getMatchData() { return !currentMatch ? null : getMapData().matches[currentMatch] || null; }
 
 function getRounds() {
   const matchData = getMatchData();
@@ -240,21 +396,17 @@ function getCalibration() {
 }
 
 function applyRotation(nx, ny, rotation) {
-  if (rotation === 90)  return [ny, 1 - nx];
+  if (rotation === 90) return [ny, 1 - nx];
   if (rotation === 180) return [1 - nx, 1 - ny];
   if (rotation === 270) return [1 - ny, nx];
   return [nx, ny];
 }
 
 function normalizePredictionCoordSpace(x, y) {
-  if (x >= 0 && x <= 1 && y >= 0 && y <= 1) return [x, y];
-
-  const scalars = MAP_SCALARS[currentMap];
-  if (!scalars) return [x, y];
-
-  const nx = scalars.xMultiplier * x + scalars.xScalarToAdd;
-  const ny = scalars.yMultiplier * y + scalars.yScalarToAdd;
-  return [nx, ny];
+  // `/api/predictions` already returns normalized minimap coordinates.
+  // Some valid normalized values can still fall slightly outside [0, 1]
+  // depending on map calibration, so do not re-apply MAP_SCALARS here.
+  return [x, y];
 }
 
 function normalizedToGameCoords(nx, ny) {
@@ -282,14 +434,11 @@ function toCanvas(x, y, coordType = 'raw') {
   nx = nx * cal.scaleX + cal.offsetX;
   ny = ny * cal.scaleY + cal.offsetY;
 
-  return [
-    vp.x + nx * vp.w,
-    vp.y + ny * vp.h
-  ];
+  return [vp.x + nx * vp.w, vp.y + ny * vp.h];
 }
 
 function undoRotation(nx, ny, rotation) {
-  if (rotation === 90)  return [1 - ny, nx];
+  if (rotation === 90) return [1 - ny, nx];
   if (rotation === 180) return [1 - nx, 1 - ny];
   if (rotation === 270) return [ny, 1 - nx];
   return [nx, ny];
@@ -304,33 +453,20 @@ function fromCanvas(cx, cy) {
 
   nx = (nx - cal.offsetX) / cal.scaleX;
   ny = (ny - cal.offsetY) / cal.scaleY;
-
   [nx, ny] = undoRotation(nx, ny, cal.rotation);
   ny = 1 - ny;
 
   const [gameX, gameY] = normalizedToGameCoords(nx, ny);
-
-  return {
-    normalizedX: nx,
-    normalizedY: ny,
-    gameX,
-    gameY
-  };
+  return { normalizedX: nx, normalizedY: ny, gameX, gameY };
 }
 
-
 function getFacingUnitVector(player) {
-  if (player.r === null || player.r === undefined || Number.isNaN(Number(player.r))) {
-    return null;
-  }
+  if (player.r === null || player.r === undefined || Number.isNaN(Number(player.r))) return null;
 
   const EPS = 0.01;
   const angle = Number(player.r);
   const [sx, sy] = toCanvas(player.x, player.y);
-  const [ex, ey] = toCanvas(
-    player.x + Math.cos(angle) * EPS,
-    player.y + Math.sin(angle) * EPS
-  );
+  const [ex, ey] = toCanvas(player.x + Math.cos(angle) * EPS, player.y + Math.sin(angle) * EPS);
 
   const dx = ex - sx;
   const dy = ey - sy;
@@ -351,13 +487,10 @@ function drawFacingArrow(player, cx, cy, radius, teamColor, isKiller) {
 
   const tipX = cx + ux * (startOffset + size);
   const tipY = cy + uy * (startOffset + size);
-
   const px = -uy;
   const py = ux;
-
   const leftX = cx + ux * startOffset + px * width;
   const leftY = cy + uy * startOffset + py * width;
-
   const rightX = cx + ux * startOffset - px * width;
   const rightY = cy + uy * startOffset - py * width;
 
@@ -372,18 +505,9 @@ function drawFacingArrow(player, cx, cy, radius, teamColor, isKiller) {
 
   const shrink = 0.9;
   pctx.beginPath();
-  pctx.moveTo(
-    cx + ux * (startOffset + size * shrink),
-    cy + uy * (startOffset + size * shrink)
-  );
-  pctx.lineTo(
-    cx + ux * startOffset + px * (width * shrink),
-    cy + uy * startOffset + py * (width * shrink)
-  );
-  pctx.lineTo(
-    cx + ux * startOffset - px * (width * shrink),
-    cy + uy * startOffset - py * (width * shrink)
-  );
+  pctx.moveTo(cx + ux * (startOffset + size * shrink), cy + uy * (startOffset + size * shrink));
+  pctx.lineTo(cx + ux * startOffset + px * (width * shrink), cy + uy * startOffset + py * (width * shrink));
+  pctx.lineTo(cx + ux * startOffset - px * (width * shrink), cy + uy * startOffset - py * (width * shrink));
   pctx.closePath();
   pctx.fillStyle = teamColor;
   pctx.fill();
@@ -404,6 +528,7 @@ function loadMapImage(mapName) {
     drawMapImage();
     return;
   }
+
   const img = new Image();
   const paths = [
     `map_images/${mapName}.png`,
@@ -411,6 +536,7 @@ function loadMapImage(mapName) {
     `map_images/${mapName.toLowerCase()}.png`,
     `map_images/${mapName.toLowerCase()}.jpg`,
   ];
+
   let tried = 0;
   function tryNext() {
     if (tried >= paths.length) {
@@ -422,6 +548,7 @@ function loadMapImage(mapName) {
     }
     img.src = paths[tried++];
   }
+
   img.onload = () => {
     imageCache[mapName] = img;
     mapImage = img;
@@ -429,6 +556,7 @@ function loadMapImage(mapName) {
     drawMapImage();
     drawPlayers();
   };
+
   img.onerror = tryNext;
   tryNext();
 }
@@ -446,7 +574,6 @@ function getImageViewport() {
   const boxAspect = availW / availH;
 
   let w, h, x, y;
-
   if (imgAspect > boxAspect) {
     w = availW;
     h = w / imgAspect;
@@ -468,7 +595,6 @@ function drawMapImage() {
   ictx.fillRect(0, 0, ic.width, ic.height);
 
   if (!mapImage) return;
-
   const vp = getImageViewport();
 
   ictx.save();
@@ -536,7 +662,7 @@ function drawVictim(vic) {
   pctx.textBaseline = 'middle';
   pctx.fillText('✕', bx, by + 0.5);
 
-  const tag = vic.n.length > 12 ? vic.n.slice(0, 11) + '…' : vic.n;
+  const tag = vic.n.length > 12 ? `${vic.n.slice(0, 11)}…` : vic.n;
   pctx.font = '9px system-ui';
   pctx.textAlign = 'center';
   pctx.textBaseline = 'top';
@@ -598,7 +724,7 @@ function drawPredictionIcon(pred, cx, cy, R, opacity, teamColor) {
 
   pctx.restore();
 
-  const tag = pred.player.length > 12 ? pred.player.slice(0, 11) + '…' : pred.player;
+  const tag = pred.player.length > 12 ? `${pred.player.slice(0, 11)}…` : pred.player;
   pctx.font = '9px system-ui';
   pctx.textAlign = 'center';
   pctx.textBaseline = 'top';
@@ -632,7 +758,6 @@ function drawPredictions() {
   });
 
   pctx.font = '11px system-ui';
-  pctx.fillStyle = 'rgba(255,255,255,0.7)';
   pctx.textAlign = 'left';
   pctx.textBaseline = 'top';
   pctx.fillStyle = 'rgba(0,0,0,0.5)';
@@ -658,7 +783,7 @@ function drawDebugCoords() {
 
     pctx.beginPath();
     pctx.arc(cx, cy, R + 4, 0, Math.PI * 2);
-    pctx.fillStyle = p.color + '33';
+    pctx.fillStyle = `${p.color}33`;
     pctx.fill();
 
     pctx.beginPath();
@@ -709,11 +834,8 @@ function drawPlayers() {
   const players = sel ? sel.p : kills.flatMap(k => k.p);
   const killerName = sel ? sel.k : null;
 
-  if (sel) {
-    drawVictim(sel.vic);
-  } else {
-    kills.forEach(k => drawVictim(k.vic));
-  }
+  if (sel) drawVictim(sel.vic);
+  else kills.forEach(k => drawVictim(k.vic));
 
   players.forEach(p => {
     const [cx, cy] = toCanvas(p.x, p.y);
@@ -760,7 +882,6 @@ function drawPlayers() {
         pctx.textBaseline = 'middle';
         pctx.fillText('★', bx, by + 1);
       }
-
     } else {
       pctx.beginPath();
       pctx.arc(cx, cy, R, 0, Math.PI * 2);
@@ -787,13 +908,13 @@ function drawPlayers() {
       }
 
       pctx.fillStyle = '#fff';
-      pctx.font = `bold 7px system-ui`;
+      pctx.font = 'bold 7px system-ui';
       pctx.textAlign = 'center';
       pctx.textBaseline = 'middle';
       pctx.fillText(abbr(p.a), cx, cy);
     }
 
-    const tag = p.n.length > 12 ? p.n.slice(0, 11) + '…' : p.n;
+    const tag = p.n.length > 12 ? `${p.n.slice(0, 11)}…` : p.n;
     pctx.font = '9px system-ui';
     pctx.textAlign = 'center';
     pctx.textBaseline = 'top';
@@ -810,33 +931,40 @@ function drawHeatmap(kills) {
   const imgData = pctx.createImageData(W, H);
   const density = new Float32Array(W * H);
   const R = 20;
+
   kills.forEach(kill => {
     kill.p.forEach(p => {
       const [cx, cy] = toCanvas(p.x, p.y);
       for (let dy = -R; dy <= R; dy++) {
         for (let dx = -R; dx <= R; dx++) {
-          const d2 = dx*dx + dy*dy;
-          if (d2 > R*R) continue;
-          const px = Math.floor(cx+dx), py = Math.floor(cy+dy);
+          const d2 = dx * dx + dy * dy;
+          if (d2 > R * R) continue;
+          const px = Math.floor(cx + dx), py = Math.floor(cy + dy);
           if (px < 0 || py < 0 || px >= W || py >= H) continue;
-          density[py*W+px] += 1 - Math.sqrt(d2)/R;
+          density[py * W + px] += 1 - Math.sqrt(d2) / R;
         }
       }
     });
   });
+
   let maxD = 0;
   for (let i = 0; i < density.length; i++) if (density[i] > maxD) maxD = density[i];
+
   for (let i = 0; i < density.length; i++) {
-    const v = maxD > 0 ? density[i]/maxD : 0;
+    const v = maxD > 0 ? density[i] / maxD : 0;
     if (v < 0.02) continue;
-    const idx = i*4;
-    let r,g,b;
-    if (v < 0.25) { r=0; g=Math.round(v*4*255); b=255; }
-    else if (v < 0.5) { r=0; g=255; b=Math.round((1-(v-0.25)*4)*255); }
-    else if (v < 0.75) { r=Math.round((v-0.5)*4*255); g=255; b=0; }
-    else { r=255; g=Math.round((1-(v-0.75)*4)*255); b=0; }
-    imgData.data[idx]=r; imgData.data[idx+1]=g; imgData.data[idx+2]=b; imgData.data[idx+3]=Math.round(v*210);
+    const idx = i * 4;
+    let r, g, b;
+    if (v < 0.25) { r = 0; g = Math.round(v * 4 * 255); b = 255; }
+    else if (v < 0.5) { r = 0; g = 255; b = Math.round((1 - (v - 0.25) * 4) * 255); }
+    else if (v < 0.75) { r = Math.round((v - 0.5) * 4 * 255); g = 255; b = 0; }
+    else { r = 255; g = Math.round((1 - (v - 0.75) * 4) * 255); b = 0; }
+    imgData.data[idx] = r;
+    imgData.data[idx + 1] = g;
+    imgData.data[idx + 2] = b;
+    imgData.data[idx + 3] = Math.round(v * 210);
   }
+
   pctx.putImageData(imgData, 0, 0);
 }
 
@@ -846,9 +974,14 @@ function updateKillList() {
   list.innerHTML = '';
   kills.forEach((k, i) => {
     const d = document.createElement('div');
-    d.className = 'kill-item' + (i === currentKillIdx ? ' sel' : '');
-    d.textContent = `${(k.ms/1000).toFixed(1)}s  ${k.k} → ${k.v}${k.s?' ['+k.s+']':''}`;
-    d.onclick = () => { currentKillIdx = i; updateKillList(); updateKillDetail(); drawPlayers(); };
+    d.className = `kill-item${i === currentKillIdx ? ' sel' : ''}`;
+    d.textContent = `${(k.ms / 1000).toFixed(1)}s  ${k.k} → ${k.v}${k.s ? ` [${k.s}]` : ''}`;
+    d.onclick = () => {
+      currentKillIdx = i;
+      updateKillList();
+      updateKillDetail();
+      drawPlayers();
+    };
     list.appendChild(d);
   });
 }
@@ -857,10 +990,12 @@ function updateKillDetail() {
   const kills = getKills();
   const el = document.getElementById('kill-detail');
   if (currentKillIdx === null || !kills[currentKillIdx]) {
-    el.innerHTML = '<span style="color:#475569">Select a kill above</span>'; return;
+    el.innerHTML = '<span style="color:#475569">Select a kill above</span>';
+    return;
   }
+
   const k = kills[currentKillIdx];
-  el.innerHTML = `<b style="color:#e2e8f0">${k.k}</b> <span style="color:#475569">→</span> <b style="color:#e2e8f0">${k.v}</b><br><span style="color:#64748b">Weapon:</span> ${k.w||'?'}<br><span style="color:#64748b">Site:</span> ${k.s||'?'}<br><span style="color:#64748b">Time:</span> ${(k.ms/1000).toFixed(1)}s<br><span style="color:#64748b">Players on screen:</span> ${k.p.length}`;
+  el.innerHTML = `<b style="color:#e2e8f0">${k.k}</b> <span style="color:#475569">→</span> <b style="color:#e2e8f0">${k.v}</b><br><span style="color:#64748b">Weapon:</span> ${k.w || '?'}<br><span style="color:#64748b">Site:</span> ${k.s || '?'}<br><span style="color:#64748b">Time:</span> ${(k.ms / 1000).toFixed(1)}s<br><span style="color:#64748b">Players on screen:</span> ${k.p.length}`;
 }
 
 function populateMatches() {
@@ -876,7 +1011,6 @@ function populateMatches() {
 
   currentMatch = matchIds.length ? matchIds[0] : null;
   if (currentMatch) matchSel.value = currentMatch;
-
   populateRounds();
 }
 
@@ -892,26 +1026,28 @@ function populateRounds() {
   });
 
   currentRound = rounds.length ? rounds[0] : null;
-  if (currentRound !== null) roundSel.value = currentRound;
+  if (currentRound !== null) roundSel.value = String(currentRound);
 
   populateKills();
+  updateExecutePrediction();
 }
 
 function populateKills() {
   killSel.innerHTML = '<option value="">All kills</option>';
   getKills().forEach((k, i) => {
-    const o = document.createElement('option'); o.value = i;
-    o.textContent = `${(k.ms/1000).toFixed(1)}s: ${k.k}→${k.v}`; killSel.appendChild(o);
+    const o = document.createElement('option');
+    o.value = i;
+    o.textContent = `${(k.ms / 1000).toFixed(1)}s: ${k.k}→${k.v}`;
+    killSel.appendChild(o);
   });
-  currentKillIdx = null;
-  preloadAgentIcons();
-  updateKillList(); updateKillDetail(); drawPlayers();
-}
 
-const mapSel = document.getElementById('mapSel');
-const matchSel = document.getElementById('matchSel');
-const roundSel = document.getElementById('roundSel');
-const killSel = document.getElementById('killSel');
+  currentKillIdx = null;
+  killSel.value = '';
+  preloadAgentIcons();
+  updateKillList();
+  updateKillDetail();
+  drawPlayers();
+}
 
 function populateMapOptions() {
   mapSel.innerHTML = '';
@@ -932,6 +1068,7 @@ mapSel.onchange = () => {
   imageCache = {};
   loadMapImage(currentMap);
   populateMatches();
+  updateExecutePrediction();
 };
 
 matchSel.onchange = () => {
@@ -945,6 +1082,7 @@ roundSel.onchange = () => {
   currentRound = Number(roundSel.value);
   currentKillIdx = null;
   populateKills();
+  updateExecutePrediction();
 };
 
 killSel.onchange = () => {
@@ -954,10 +1092,10 @@ killSel.onchange = () => {
   drawPlayers();
 };
 
-document.getElementById('btnView').onclick = () => { mode='view'; setMode(); };
-document.getElementById('btnHeat').onclick = () => { mode='heat'; setMode(); };
-document.getElementById('btnPred').onclick = () => { mode='pred'; setMode(); };
-document.getElementById('btnDebug').onclick = () => { mode='debug'; setMode(); };
+document.getElementById('btnView').onclick = () => { mode = 'view'; setMode(); };
+document.getElementById('btnHeat').onclick = () => { mode = 'heat'; setMode(); };
+document.getElementById('btnPred').onclick = () => { mode = 'pred'; setMode(); };
+document.getElementById('btnDebug').onclick = () => { mode = 'debug'; setMode(); };
 
 document.getElementById('mapOpacity').oninput = function() {
   mapOpacity = this.value / 100;
@@ -970,14 +1108,15 @@ document.getElementById('predictionTimeBucket').onchange = function() {
 };
 
 function setMode() {
-  ['btnView','btnHeat','btnPred','btnDebug'].forEach(id => document.getElementById(id).classList.remove('active'));
-  document.getElementById({view:'btnView',heat:'btnHeat',pred:'btnPred',debug:'btnDebug'}[mode]).classList.add('active');
+  ['btnView', 'btnHeat', 'btnPred', 'btnDebug'].forEach(id => document.getElementById(id).classList.remove('active'));
+  document.getElementById({ view:'btnView', heat:'btnHeat', pred:'btnPred', debug:'btnDebug' }[mode]).classList.add('active');
   drawPlayers();
 }
 
 pc.onmousemove = (e) => {
   const rect = pc.getBoundingClientRect();
-  const mx = e.clientX - rect.left, my = e.clientY - rect.top;
+  const mx = e.clientX - rect.left;
+  const my = e.clientY - rect.top;
   const vp = getImageViewport();
 
   if (mx < vp.x || mx > vp.x + vp.w || my < vp.y || my > vp.y + vp.h) {
@@ -990,29 +1129,32 @@ pc.onmousemove = (e) => {
   const normalizedY = coords.normalizedY.toFixed(4);
   const gameX = coords.gameX.toFixed(2);
   const gameY = coords.gameY.toFixed(2);
-
   const coordHtml = `<span style="color:#64748b">Game:</span> (${gameX}, ${gameY})<br><span style="color:#64748b">Normalized:</span> (${normalizedX}, ${normalizedY})`;
 
   if (mode !== 'view') {
     tip.style.display = 'block';
-    tip.style.left = (e.clientX + 14) + 'px';
-    tip.style.top = (e.clientY - 10) + 'px';
+    tip.style.left = `${e.clientX + 14}px`;
+    tip.style.top = `${e.clientY - 10}px`;
     tip.innerHTML = `<b>Map coordinates</b><br>${coordHtml}`;
     return;
   }
 
   const kills = getKills();
-  const players = currentKillIdx !== null ? kills[currentKillIdx]?.p || [] : kills.flatMap(k => k.p);
+  const players = currentKillIdx !== null ? (kills[currentKillIdx]?.p || []) : kills.flatMap(k => k.p);
   const victims = currentKillIdx !== null
     ? (kills[currentKillIdx]?.vic ? [kills[currentKillIdx].vic] : [])
     : kills.map(k => k.vic).filter(Boolean);
 
-  let found = null, isVic = false, minD = 14;
+  let found = null;
+  let isVic = false;
+  let minD = 14;
+
   players.forEach(p => {
     const [cx, cy] = toCanvas(p.x, p.y);
     const d = Math.hypot(cx - mx, cy - my);
     if (d < minD) { minD = d; found = p; isVic = false; }
   });
+
   victims.forEach(v => {
     const [cx, cy] = toCanvas(v.x, v.y);
     const d = Math.hypot(cx - mx, cy - my);
@@ -1020,26 +1162,29 @@ pc.onmousemove = (e) => {
   });
 
   tip.style.display = 'block';
-  tip.style.left = (e.clientX + 14) + 'px';
-  tip.style.top = (e.clientY - 10) + 'px';
+  tip.style.left = `${e.clientX + 14}px`;
+  tip.style.top = `${e.clientY - 10}px`;
 
   if (found) {
     const deg = found.r === null || found.r === undefined || Number.isNaN(Number(found.r))
       ? 'Unknown'
-      : ((Number(found.r) * 180 / Math.PI) % 360 + 360).toFixed(1) + '°';
+      : `${(((Number(found.r) * 180 / Math.PI) % 360) + 360).toFixed(1)}°`;
     const statusLabel = isVic
       ? '<span style="color:#ef4444">☠ Victim</span>'
       : `<span style="color:${found.t === 'Blue' ? '#60a5fa' : '#f87171'}">${found.t}</span>`;
-    tip.innerHTML = `<b>${found.n}</b><br>${found.a} · ${statusLabel}<br>${coordHtml}${isVic ? '' : ('<br><span style="color:#64748b">Facing:</span> ' + deg)}`;
+    tip.innerHTML = `<b>${found.n}</b><br>${found.a} · ${statusLabel}<br>${coordHtml}${isVic ? '' : `<br><span style="color:#64748b">Facing:</span> ${deg}`}`;
   } else {
     tip.innerHTML = `<b>Map coordinates</b><br>${coordHtml}`;
   }
 };
-pc.onmouseleave = () => { tip.style.display='none'; };
+
+pc.onmouseleave = () => { tip.style.display = 'none'; };
 
 new ResizeObserver(resize).observe(wrap);
+
 async function initializeApp() {
   try {
+    renderExecutePredictionLoading();
     await loadRawFromDatabase();
     await loadPredictionsFromDatabase();
     populateMapOptions();
@@ -1048,10 +1193,9 @@ async function initializeApp() {
     resize();
   } catch (err) {
     console.error(err);
-    document.getElementById('kill-detail').innerHTML =
-      `<span style="color:#f87171">${err.message}</span>`;
-    document.getElementById('kill-list').innerHTML =
-      '<div style="font-size:11px;color:#f87171">Could not load data from valorant.db</div>';
+    document.getElementById('kill-detail').innerHTML = `<span style="color:#f87171">${err.message}</span>`;
+    document.getElementById('kill-list').innerHTML = '<div style="font-size:11px;color:#f87171">Could not load data from valorant.db</div>';
+    renderExecutePredictionError(err.message || 'Could not load execute prediction.');
   }
 }
 
