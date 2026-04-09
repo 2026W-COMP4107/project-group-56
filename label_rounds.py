@@ -1,23 +1,18 @@
 """
-label_rounds.py
----------------
-Week 1 deliverable: Define and apply tactical-intent labeling heuristics.
-
 Assigns one of six class labels to each attacking round based on observable
-game-state signals derived from kill timestamps and player positions:
+game state signals derived from kill timestamps and player positions:
 
     0  A-Site Rush       — fast A commitment, first kill < 20 s on A side
     1  B-Site Rush       — fast B commitment, first kill < 20 s on B side
-    2  Split             — kills spread across both sites in first 30 s
-    3  Default           — slow, balanced spread with no early commitment
-    4  Fake              — early A/B pressure followed by switch to other site
+    2  A - Split         — kills spread across A entry site in first 30 s
+    3  B - Split         — kills spread across B entry site in first 30 s
+    4  Default           — slow, balanced spread with no early commitment
     5  Slow Execute      — coordinated late push (first kill >= 30 s)
 
 Heuristics are intentionally transparent so they can be validated by hand
 and refined later once we have ground-truth labels.
 
 Usage
------
     python label_rounds.py              # prints label distribution to stdout
     python label_rounds.py --update-db  # writes labels into valorant.db
 
@@ -39,7 +34,7 @@ import pandas as pd
 
 DB_PATH = Path("valorant.db")
 
-# ── Label definitions ─────────────────────────────────────────────────────────
+# == Label definitions =========================================================
 LABEL_NAMES = {
     0: "A-Site Rush",
     1: "B-Site Rush",
@@ -49,7 +44,7 @@ LABEL_NAMES = {
     5: "Slow Execute",
 }
 
-# ── Heuristic thresholds ──────────────────────────────────────────────────────
+# == Heuristic thresholds ======================================================
 RUSH_THRESHOLD_MS = 15_000
 EARLY_WINDOW_MS = 30_000
 MID_WINDOW_MS = 45_000
@@ -340,14 +335,14 @@ def classify_round(
     late_final = int((late_known["event_site"] == final_site).sum()) if final_site else 0
     late_total = len(late_known)
 
-    # ── Slow Execute ─────────────────────────────────────────────────────────
+    # == Slow Execute =========================================================
     if plant_time_ms is not None and plant_time_ms >= LATE_THRESHOLD_MS:
         return 5, LABEL_NAMES[5], 0.82
 
     if first_kill_ms is not None and first_kill_ms >= LATE_THRESHOLD_MS:
         return 5, LABEL_NAMES[5], 0.75
     
-    # ── Split ────────────────────────────────────────────────────────────────
+    # == Split ================================================================
     # New definition:
     # A Split = early MID + A pressure, final commit A
     # B Split = early MID + B pressure, final commit B
@@ -364,7 +359,7 @@ def classify_round(
             if early_mid >= 1 and early_b >= 1 and (early_mid + early_b) >= 3:
                 return 3, LABEL_NAMES[3], 0.70
 
-    # ── Rush ─────────────────────────────────────────────────────────────────
+    # == Rush =================================================================
     # Strong rush = early first kill + heavy early final-site concentration + little MID presence
     if final_site in {"A", "B"} and first_kill_ms is not None and first_kill_ms <= RUSH_THRESHOLD_MS:
         early_known_total = int((early["event_site"].isin(["A", "B", "MID"])).sum())
@@ -382,7 +377,7 @@ def classify_round(
             if final_ratio >= 0.80 and mid_ratio <= 0.15:
                 return 1, LABEL_NAMES[1], 0.82
 
-    # ── Prediction-backed rush fallback ─────────────────────────────────────
+    # == Prediction-backed rush fallback =====================================
     # Useful when early kills are sparse but attacker prediction strongly clusters to one site.
     if final_site == "A":
         if (
@@ -400,7 +395,7 @@ def classify_round(
         ):
             return 1, LABEL_NAMES[1], 0.68
 
-    # ── Prediction-backed split fallback ────────────────────────────────────
+    # == Prediction-backed split fallback ====================================
     if final_site == "A":
         if (
             pred_feats_15["mid_frac"] >= 0.20
@@ -417,7 +412,7 @@ def classify_round(
         ):
             return 3, LABEL_NAMES[3], 0.66
 
-    # ── Default ──────────────────────────────────────────────────────────────
+    # == Default ==============================================================
     return 4, LABEL_NAMES[4], 0.55
 
 

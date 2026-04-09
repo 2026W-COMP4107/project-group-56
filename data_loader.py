@@ -1,18 +1,14 @@
 """
-data_loader.py
---------------
 Handles all SQLite database interactions.
 Loads Valorant match data from JSON or API responses into a normalized database.
 
 Tables:
--------
 - matches: Match metadata (match_id, map, date)
 - rounds: Round data (round_id, match_num, side, winner)
 - kills: Individual kill events with location data
 - player_locations: All player positions during each kill event
 
 Features:
----------
 - Loads real Valorant API match data from JSON files
 - Filters by map pool and game mode (competitive only)
 - Captures killer/victim locations and all player positions
@@ -554,7 +550,7 @@ def generate_player_predictions(db_path: str = DB_PATH) -> None:
     """
     generate_attacker_predictions(db_path)
 
-# ── Loaders ───────────────────────────────────────────────────────────────────
+# == Loaders ===================================================================
 
 def load_kills(db_path: str = DB_PATH) -> pd.DataFrame:
     conn = sqlite3.connect(db_path)

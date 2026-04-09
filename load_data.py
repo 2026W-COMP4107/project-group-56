@@ -1,7 +1,3 @@
-"""
-Example script showing how to load Valorant match data and query it.
-"""
-
 from pathlib import Path
 import sqlite3
 
@@ -87,11 +83,6 @@ if __name__ == "__main__":
         # load_all_json_files("json")
         for path in bind_files:
             load_from_json_file(path)
-
-    # Generate position predictions
-    print("\n=== Generating Position Predictions ===")
-    # # # generate_player_predictions()
-    # AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA
 
     # Load and display all kill events
     print("\n=== Loading all kill events ===")

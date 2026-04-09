@@ -1,6 +1,4 @@
 """
-serve_db.py
------------
 Serves the Valorant map viewer and exposes a small JSON API backed by
 valorant.db so the frontend reads from the SQLite database instead of an
 embedded RAW JavaScript object.

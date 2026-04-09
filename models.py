@@ -182,19 +182,17 @@ class TransformerClassifier(nn.Module):
     """
     Sequence classifier using a Transformer encoder.
 
-    Architecture
-    ------------
+    Architecture:
     1. Linear input projection  F → d_model
     2. Sinusoidal positional encoding
-    3. n_layers × TransformerEncoderLayer  (MHSA + FFN, Pre-LN)
+    3. n_layers * TransformerEncoderLayer  (MHSA + FFN, Pre-LN)
     4. Mean-pool across T time steps → (N, d_model)
     5. Dropout + linear head → (N, C) logits
 
     Input:  (N, T, F)
     Output: (N, C) logits
 
-    Notes
-    -----
+    Notes:
     - d_model must be divisible by n_heads.
     - Mean-pooling is preferred over a [CLS] token when T is small (T=6 here).
     - norm_first=True (Pre-LN) gives more stable gradients for shallow encoders.

@@ -1,6 +1,4 @@
 """
-collect_matches.py
-------------------
 BFS match collector for Valorant tactical ML project.
 
 Output structure:
@@ -18,7 +16,7 @@ Flow per player:
   3. Only AFTER all 50 games downloaded → enqueue opponents
   4. Never re-fetch a match_id already in that player's folder
 
-Rate limit : 90 calls/minute → one call every ~0.72s
+Rate limit : 90 calls/minute  one call every 0.72s
 Resume-safe: skips players already in done_players.txt
 """
 
@@ -30,7 +28,7 @@ import re
 from collections import deque
 import dotenv
 
-# ── Config ─────────────────────────────────────────────────────────────────────
+# == Config =====================================================================
 BASE_URL     = "https://val-api-wrapper.up.railway.app/valorant/v4/matches/na/pc"
 JSON_ROOT    = "json"
 SEEN_FILE    = "seen_matches.txt"
@@ -48,7 +46,7 @@ CALL_INTERVAL = 60 / RATE_LIMIT + 0.05     # 0.72s for each
 
 dotenv.load_dotenv() 
 HENDRICK_API_KEY = os.getenv("HENDRICK_API_KEY")
-# ── Filesystem helpers ─────────────────────────────────────────────────────────
+# == Filesystem helpers =========================================================
 
 def safe_name(name, tag):
     """Sanitize name#tag for use as a folder name."""
@@ -78,7 +76,7 @@ def saved_match_ids(name, tag):
     return {f[:-5] for f in os.listdir(d) if f.endswith(".json")}
 
 
-# ── API ────────────────────────────────────────────────────────────────────────
+# == API ========================================================================
 _last_call = 0.0
 
 def fetch(name, tag, map_name):
@@ -122,7 +120,7 @@ def fetch(name, tag, map_name):
         _last_call = time.time()
         return []
 
-# ── Save ───────────────────────────────────────────────────────────────────────
+# == Save =======================================================================
 
 def save_match(match, map_name):
     """Save match to json/{map_name}/{match_id}.json"""
@@ -149,7 +147,7 @@ def extract_players(match):
             out.append((n, t))
     return out
 
-# ── Process one player (download all 50 games first) ──────────────────────────
+# == Process one player (download all 50 games first) ==========================
 
 def process_player(name, tag, seen_matches, done_players):
     """
@@ -190,7 +188,7 @@ def process_player(name, tag, seen_matches, done_players):
 
     return opponents
 
-# ── BFS ────────────────────────────────────────────────────────────────────────
+# == BFS ========================================================================
 
 def collect():
     os.makedirs(JSON_ROOT, exist_ok=True)
@@ -215,11 +213,11 @@ def collect():
         if player_key(name, tag) in done_players:
             continue
 
-        # ── Download all 50 games for this player before touching opponents ──
+        # == Download all 50 games for this player before touching opponents ==
         opponents = process_player(name, tag, seen_matches, done_players)
         players_processed += 1
 
-        # ── Now enqueue unique new opponents ─────────────────────────────────
+        # == Now enqueue unique new opponents =================================
         new_enqueued = 0
         for opp_name, opp_tag in opponents:
             okey = player_key(opp_name, opp_tag)

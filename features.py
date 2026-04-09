@@ -1,6 +1,4 @@
 """
-features.py
------------
 Feature extraction and preprocessing pipeline.
 
 Produces two dataset representations:
@@ -12,15 +10,6 @@ Produces two dataset representations:
 2. Temporal Sequence Representation
    Sequence of state snapshots sampled at [5 s, 10 s, 15 s, 20 s, 25 s, 30 s].
    Output: (N, T, F) array per round → X_seq.npy, y_seq.npy
-
-This version adds:
-- Attacker A/B/MID presence fractions
-- Attacker spread / compactness
-- Alive counts
-- Movement / velocity features
-- Label remapping to remove Fake:
-    Fake (old 5) -> Default (new 4)
-    Slow Execute (old 6) -> new 5
 """
 
 from __future__ import annotations
@@ -35,15 +24,15 @@ import pandas as pd
 DB_PATH = Path("valorant.db")
 OUT_DIR = Path("features")
 
-# ── Time configuration ────────────────────────────────────────────────────────
+# == Time configuration ========================================================
 MAX_ROUND_MS = 100_000
 DEFAULT_SNAP = 10_000
 SEQ_STEPS_MS = [5_000, 10_000, 15_000, 20_000, 25_000, 30_000]
 
-# ── Agent role taxonomy ───────────────────────────────────────────────────────
+# == Agent role taxonomy =======================================================
 AGENT_ROLES: dict[str, str] = {
-    "Astra": "Controller", "Brimstone": "Controller", "Harbor": "Controller",
-    "Omen": "Controller", "Viper": "Controller", "Clove": "Controller",
+    "Astra": "Controller", "Brimstone": "Controller", "Harbor": "Controller", "Miks": "Controller",
+    "Omen": "Controller", "Viper": "Controller", "Clove": "Controller", 
 
     "Jett": "Duelist", "Neon": "Duelist", "Phoenix": "Duelist", "Raze": "Duelist",
     "Reyna": "Duelist", "Yoru": "Duelist", "Iso": "Duelist", "Waylay": "Duelist",
@@ -52,11 +41,9 @@ AGENT_ROLES: dict[str, str] = {
     "KAY/O": "Initiator", "KAYO": "Initiator", "Skye": "Initiator", "Sova": "Initiator",
     "Tejo": "Initiator",
 
-    "Chamber": "Sentinel", "Cypher": "Sentinel", "Deadlock": "Sentinel",
+    "Chamber": "Sentinel", "Cypher": "Sentinel", "Deadlock": "Sentinel", "Veto": "Sentinel",
     "Killjoy": "Sentinel", "Sage": "Sentinel", "Vyse": "Sentinel",
 
-    "Miks": "Controller",
-    "Veto": "Sentinel",
     "Unknown": "Unknown",
 }
 ROLE_ORDER = ["Controller", "Duelist", "Initiator", "Sentinel", "Unknown"]
@@ -72,7 +59,7 @@ LABEL_NAMES = {
     5: "Slow Execute",
 }
 
-# ── Feature layout ────────────────────────────────────────────────────────────
+# == Feature layout ============================================================
 # Previous 36 + 4 movement features = 40
 FEATURE_DIM = 48
 

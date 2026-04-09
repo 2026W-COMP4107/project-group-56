@@ -1,8 +1,5 @@
 """
-Generic attacker position prediction generation for all supported maps.
-
-This extends the original Bind-only predictor with map-aware topology from
-`map_adjacency_graph.map_zones` and configurable attacker spawn anchors for:
+Attacker position prediction generation for all supported maps for the current season.
 
 - Bind
 - Breeze

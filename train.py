@@ -1,12 +1,5 @@
 """
-train.py
---------
 PyTorch training harness for tactical intent prediction.
-
-Implements the Week 5 deliverables:
-  - Train / validation / test split
-  - Cross-map validation (leave-one-map-out)
-  - Final evaluation metrics + analysis summaries
 
 Trains and evaluates:
   - MLP          (static features)
@@ -30,7 +23,6 @@ Features:
 - Best model checkpoints saved to results/
 
 Usage
------
     # Full pipeline from raw DB:
     python train.py --full-pipeline
 

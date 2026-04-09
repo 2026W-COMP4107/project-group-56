@@ -1,7 +1,5 @@
 """
-map_zones.py
-------------
-Zone definitions, adjacency graphs, and pathfinding for Valorant maps.
+Zone definitions, adjacency graphs, and pathfinding for maps
 
 Usage:
     from map_zones import get_zone, get_path, get_zone_centroid
@@ -15,7 +13,7 @@ import math
 import networkx as nx
 from typing import Optional
 
-# ── Coordinate normalization ───────────────────────────────────────────────────
+# == Coordinate normalization ===================================================
 
 MAP_SCALARS: dict[str, dict[str, float]] = {
     "Bind":     {"xMultiplier": 5.9e-05,  "xScalarToAdd": 0.576941, "yMultiplier": -5.9e-05,  "yScalarToAdd": 0.967566},
@@ -33,7 +31,7 @@ def normalize_coord(x: float, y: float, map_name: str) -> tuple[float, float]:
         s["yMultiplier"] * y + s["yScalarToAdd"],
     )
 
-# ── Point-in-polygon (ray casting) ────────────────────────────────────────────
+# == Point-in-polygon (ray casting) ============================================
 
 def point_in_polygon(px: float, py: float, polygon: list[list[float]]) -> bool:
     """
@@ -51,7 +49,7 @@ def point_in_polygon(px: float, py: float, polygon: list[list[float]]) -> bool:
         j = i
     return inside
 
-# ── Zone polygon definitions ───────────────────────────────────────────────────
+# == Zone polygon definitions ===================================================
 # Points are already in normalized coords (output of normalize_coord).
 # Add other maps here as your partner fills them in.
 
@@ -147,7 +145,7 @@ ZONE_POLYGONS: dict[str, list[dict]] = {
         {"name": "b_site",         "points": [[-0.0785,-0.3503],[-0.0761,-0.3071],[-0.0589,-0.2907],[-0.0614,-0.126],[0.0832,-0.126],[0.0832,-0.265],[0.0244,-0.2627],[0.0379,-0.2989],[0.0354,-0.3527]]},
         {"name": "b_heaven",       "points": [[0.055,-0.077],[-0.1766,-0.0746],[-0.1802,-0.126],[0.0575,-0.1249]]},
         {"name": "defender_b_side","points": [[-0.0087,-0.0735],[-0.1839,-0.0746],[-0.2158,0.0188],[-0.2133,0.1134],[-0.0859,0.1076],[-0.0859,0.006],[-0.1018,-0.0069],[-0.0062,-0.0151]]},
-        {"name": "a_main",         "points": [[-0.1839,0.0188],[-0.1849,0.1134],[-0.0859,0.1076],[-0.0859,0.006],[-0.1018,-0.0069],[-0.0062,-0.0151],[-0.0087,-0.0735],[-0.1766,-0.0746],[-0.1802,-0.126],[0.0575,-0.1249]]},###
+        {"name": "a_main",         "points": [[-0.1839,0.0188],[-0.1849,0.1134],[-0.0859,0.1076],[-0.0859,0.006],[-0.1018,-0.0069],[-0.0062,-0.0151],[-0.0087,-0.0735],[-0.1766,-0.0746],[-0.1802,-0.126],[0.0575,-0.1249]]},
     ],
     "Split": [
         {"name": "b_alley",        "points": [[0.3085,-0.2721],[0.0922,-0.2733],[0.0874,-0.3836],[0.3073,-0.3861]]},
@@ -178,7 +176,7 @@ ZONE_POLYGONS: dict[str, list[dict]] = {
     ],
 }
 
-# ── Adjacency graphs ───────────────────────────────────────────────────────────
+# == Adjacency graphs ===========================================================
 
 ADJACENCY: dict[str, dict[str, list[str]]] = {
     "Bind": {
@@ -271,7 +269,7 @@ ADJACENCY: dict[str, dict[str, list[str]]] = {
         "a_link":         ["mid_connector", "a_site", "art"],
         "a_dugout":       ["a_site", "a_secret"],
         "a_site":         ["a_link", "a_dugout"," a_flowers", "a_secret", "a_main"],
-        "b_link":         ["mid_connector", "mid_doors", "b_site"],###
+        "b_link":         ["mid_connector", "mid_doors", "b_site"],
         "a_main":         ["restaurant", "a_site"],
     },
     "Split": {
@@ -308,7 +306,7 @@ TELEPORTER_EDGES = {
     "Bind": {("a_teleporter", "b_teleporter"), ("b_teleporter", "a_teleporter")}
 }
 
-# ── Build NetworkX graphs ──────────────────────────────────────────────────────
+# == Build NetworkX graphs ======================================================
 
 _graphs: dict[str, nx.Graph] = {}
 
@@ -321,7 +319,7 @@ def _get_graph(map_name: str) -> nx.Graph:
         _graphs[map_name] = G
     return _graphs[map_name]
 
-# ── Zone centroid cache ────────────────────────────────────────────────────────
+# == Zone centroid cache ========================================================
 
 _centroids: dict[str, dict[str, tuple[float, float]]] = {}
 
@@ -339,7 +337,7 @@ def get_zone_centroid(zone_name: str, map_name: str) -> tuple[float, float]:
         _centroids[map_name][zone_name] = (cx, cy)
     return _centroids[map_name][zone_name]
 
-# ── Public API ─────────────────────────────────────────────────────────────────
+# == Public API =================================================================
 
 def get_zone(x: float, y: float, map_name: str) -> str:
     """
@@ -424,7 +422,7 @@ def label_site(zone_name: str) -> Optional[str]:
     return None
 
 
-# ── Quick sanity check ─────────────────────────────────────────────────────────
+# == Quick sanity check =========================================================
 
 if __name__ == "__main__":
     # Test zone lookup with a known kill location from data
