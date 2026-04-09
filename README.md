@@ -150,13 +150,3 @@ project-group-56/
 └── valorant_map_viewer_db.html
 ```
 
-## Troubleshooting
-
-### `GET /favicon.ico` 404
-Browsers often request `/favicon.ico` automatically. The server has been updated to handle that request cleanly.
-
-### Prediction markers appear in the wrong place
-Prediction coordinates are normalized on the backend before being sent to the browser. The frontend should only apply display transforms such as map rotation and calibration.
-
-### Database not found
-If `serve_db.py` reports that `valorant.db` is missing, place the database file in the project root directory.
